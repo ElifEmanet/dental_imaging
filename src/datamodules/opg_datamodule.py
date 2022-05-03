@@ -14,7 +14,9 @@ from src.dataset.dataset import OPGDataset, DataSubSet, AdjustContrast, Center, 
 class OPGDataModule(pl.LightningDataModule):
     def __init__(
             self,
-            data_dir: str = "data/",
+            # depending on where you run this project, change the following line:
+            # data_dir: str = "data/",
+            data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/",
             train_val_test_split: Tuple[int, int, int] = (55_000, 5_000, 10_000),
             batch_size: int = 32,
             num_workers: int = 0,
