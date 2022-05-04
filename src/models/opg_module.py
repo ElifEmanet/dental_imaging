@@ -37,10 +37,10 @@ class OPGLitModule(LightningModule):
         self.net = net
 
         # Loss function for reconstruction:
-        self.reconstr_loss = nn.CrossEntropyLoss()
+        self.reconstr_loss = nn.MSELoss()
 
         # Loss function for classification:
-        self.classif_loss = nn.MSELoss()
+        self.classif_loss = nn.CrossEntropyLoss()
 
         # use separate metric instance for train, val and test step
         # to ensure a proper reduction over the epoch
