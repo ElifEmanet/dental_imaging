@@ -19,7 +19,7 @@ class Encoder(nn.Module):
             nn.Conv2d(8, 16, 3, stride=stride, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(True),
-            nn.Conv2d(16, 32, 3, stride=stride, padding=1),
+            nn.Conv2d(16, 32, 3, stride=stride, padding=0),
             nn.ReLU(True)
         )
         
@@ -57,7 +57,7 @@ class Decoder(nn.Module):
 
         self.decoder_conv = nn.Sequential(
             nn.ConvTranspose2d(32, 16, 3, 
-            stride=stride, output_padding=1),
+            stride=stride, output_padding=0),
             nn.BatchNorm2d(16),
             nn.ReLU(True),
             nn.ConvTranspose2d(16, 8, 3, stride=stride, 
