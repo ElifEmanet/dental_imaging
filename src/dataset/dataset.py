@@ -29,7 +29,7 @@ class OPGDataset(Dataset):
         self.transform = transform
 
         # 2. column: the image paths/names
-        self.image_arr = np.asarray(self.frame.iloc[:, 1])
+        self.image_arr = np.asarray(self.frame.iloc[:, 0])
 
         # 12. column: machine (0 or 1)
         self.machine_arr = np.asarray(self.frame.iloc[:, 11])
