@@ -57,7 +57,7 @@ class OPGLitModule(LightningModule):
     def common_step(self, batch: Any):
         x = batch['image']
         x_reconstr = self.forward(x.double())
-        loss = self.reconstr_loss(x_reconstr, x.view(x.size(0), -1))
+        loss = self.reconstr_loss(x_reconstr, x)
         return loss
 
     def training_step(self, batch: Any, batch_idx: int):
