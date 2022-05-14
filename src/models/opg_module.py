@@ -5,6 +5,7 @@ import torch.nn as nn
 from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric
 from torchmetrics.classification.accuracy import Accuracy
+from torchmetrics import MeanSquaredError
 
 from src.models.components.autoencoder import Encoder, Decoder
 
@@ -38,16 +39,21 @@ class OPGLitModule(LightningModule):
         self.decoder = Decoder(latent_dim).double()
 
         # Loss function for reconstruction:
-        self.reconstr_loss = nn.MSELoss()
+        # self.reconstr_loss = nn.MSELoss()
 
         # use separate metric instance for train, val and test step
         # to ensure a proper reduction over the epoch
-        self.train_acc = Accuracy()
-        self.val_acc = Accuracy()
-        self.test_acc = Accuracy()
+        # self.train_acc = Accuracy()
+        # self.val_acc = Accuracy()
+        # self.test_acc = Accuracy()
 
-        # for logging best so far validation accuracy
-        self.val_acc_best = MaxMetric()
+        self.train_loss = MeanSquaredError()
+        self.val_loss = MeanSquaredError()
+        self.test_loss = MeanSquaredError()
+
+        # for logging best so far validation loss
+        # self.val_acc_best = MaxMetric()
+        self.val_loss_best = MaxMetric()
 
     def forward(self, x):
         z = self.encoder(x.double())
@@ -57,14 +63,15 @@ class OPGLitModule(LightningModule):
     def common_step(self, batch: Any):
         x = batch['image']
         x_reconstr = self.forward(x.double())
-        loss = self.reconstr_loss(x_reconstr, x)
-        return loss
+        # loss = self.reconstr_loss(x_reconstr, x)
+        return x, x_reconstr
 
     def training_step(self, batch: Any, batch_idx: int):
-        loss = self.common_step(batch)
+        x, x_hat = self.common_step(batch)
+        loss = self.train_loss(x, x_hat)
 
         # log train metrics
-        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in `training_epoch_end()`` below
@@ -76,23 +83,22 @@ class OPGLitModule(LightningModule):
         pass
 
     def validation_step(self, batch: Any, batch_idx: int):
-        loss = self.common_step(batch)
+        x, x_hat = self.common_step(batch)
+        loss = self.val_loss(x, x_hat)
 
         # log val metrics
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 
         return {"loss": loss}
 
     def validation_epoch_end(self, outputs: List[Any]):
-        pass
-        ''''
-        acc = self.val_acc.compute()  # get val accuracy from current epoch
-        self.val_acc_best.update(acc)
-        self.log("val/acc_best", self.val_acc_best.compute(), on_epoch=True, prog_bar=True)
-        '''
+        loss = self.val_loss.compute()  # get val accuracy from current epoch
+        self.val_loss_best.update(loss)
+        self.log("val/loss_best", self.val_loss_best.compute(), on_epoch=True, prog_bar=True)
 
     def test_step(self, batch: Any, batch_idx: int):
-        loss = self.common_step(batch)
+        x, x_hat = self.common_step(batch)
+        loss = self.test_loss(x, x_hat)
 
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True)
@@ -104,9 +110,9 @@ class OPGLitModule(LightningModule):
 
     def on_epoch_end(self):
         # reset metrics at the end of every epoch
-        self.train_acc.reset()
-        self.test_acc.reset()
-        self.val_acc.reset()
+        self.train_loss.reset()
+        self.test_loss.reset()
+        self.val_loss.reset()
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
