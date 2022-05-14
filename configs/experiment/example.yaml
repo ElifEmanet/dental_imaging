@@ -15,7 +15,7 @@ defaults:
 
 # name of the run determines folder name in logs
 name: "autoencoder"
-data_dir: ~/projects/dental_imaging  # CHANGE THIS!!!
+data_dir: "/cluster/project/jbuhmann/dental_imaging/data/all_patches"  # CHANGE THIS!!!
 
 seed: 12345
 
@@ -26,9 +26,6 @@ trainer:
 
 model:
   lr: 0.002
-  net:
-    lin1_size = 128,
-    lin2_size = 256
 
 datamodule:
   batch_size: 64

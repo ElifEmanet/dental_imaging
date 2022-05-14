@@ -16,7 +16,7 @@ class OPGDataModule(pl.LightningDataModule):
             self,
             # depending on where you run this project, change the following line:
             # data_dir: str = "data/",
-            data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/",
+            data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/all_patches",
             train_val_test_split: Tuple[int, int, int] = (55_000, 5_000, 10_000),
             batch_size: int = 32,
             num_workers: int = 0,
@@ -62,13 +62,14 @@ class OPGDataModule(pl.LightningDataModule):
              self.zoom,
              self.resize,
              ExpandDims(),
-             ToTensor()]
+             transforms.ToTensor()]
         )
 
         self.test_transforms = transforms.Compose(
             [Center(),
              NormalizeIntensity(),
              AdjustContrast(1., 10., 0.),
+             self.resize,
              ExpandDims(),
              ToTensor()]
         )
@@ -92,18 +93,18 @@ class OPGDataModule(pl.LightningDataModule):
 
         # Assign train/val datasets for use in dataloaders
         if stage == "fit" or stage is None:
-            data_fit = OPGDataset("data/all_images_train_select.csv", self.data_dir)
+            data_fit = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_train_select.csv", self.data_dir)
             self.length = len(data_fit)
             self.train_len = int(self.length*0.8)
             self.train_set, self.val_set = random_split(data_fit, [self.train_len, self.length - self.train_len])
 
-            self.train_trf_set = DataSubSet(self.train_set, transform=self.train_transform)
-            self.val_trf_set = DataSubSet(self.val_set, transform=self.test_transform)
+            self.train_trf_set = DataSubSet(self.train_set, transform=self.train_transforms)
+            self.val_trf_set = DataSubSet(self.val_set, transform=self.test_transforms)
 
             # self.dims = tuple(self.train_set[0][0].shape)
 
         if stage == "test" or stage is None:
-            self.test_set = OPGDataset("data/all_images_test_aug.csv", self.data_dir, transform=self.test_transforms)
+            self.test_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_test_aug.csv", self.data_dir, transform=self.test_transforms)
 
             # self.dims = tuple(self.test_set[0][0].shape)
 

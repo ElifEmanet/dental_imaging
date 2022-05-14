@@ -398,6 +398,7 @@ class ToTensor(object):
         # torch image: C x H x W
         image = image.transpose((2, 0, 1))
 
-        return {'id': id, 'image': torch.from_numpy(image), 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': torch.from_numpy(image).type(torch.DoubleTensor),
+                'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
 
 

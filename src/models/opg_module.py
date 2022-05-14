@@ -6,7 +6,7 @@ from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric
 from torchmetrics.classification.accuracy import Accuracy
 
-from src.models.components.autoencoder import AE
+from src.models.components.autoencoder import Encoder, Decoder
 
 
 class OPGLitModule(LightningModule):
@@ -24,7 +24,7 @@ class OPGLitModule(LightningModule):
 
     def __init__(
         self,
-        net: torch.nn.Module,
+        latent_dim: int = 30,
         lr: float = 0.001,
         weight_decay: float = 0.0005,
     ):
@@ -34,13 +34,11 @@ class OPGLitModule(LightningModule):
         # it also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        self.net = net
+        self.encoder = Encoder(latent_dim).double()
+        self.decoder = Decoder(latent_dim).double()
 
         # Loss function for reconstruction:
         self.reconstr_loss = nn.MSELoss()
-
-        # Loss function for classification:
-        self.classif_loss = nn.CrossEntropyLoss()
 
         # use separate metric instance for train, val and test step
         # to ensure a proper reduction over the epoch
@@ -52,58 +50,54 @@ class OPGLitModule(LightningModule):
         self.val_acc_best = MaxMetric()
 
     def forward(self, x):
-        return self.net(x)
+        z = self.encoder(x.double())
+        x_hat = self.decoder(z.double())
+        return x_hat
 
     def common_step(self, batch: Any):
         x = batch['image']
-        y = batch['bin_class']
-        x_reconstr, y_preds = self.forward(x)
-        loss_mse = self.reconstr_loss(x_reconstr, x.view(x.size(0), -1))
-        loss_cls = self.classif_loss(y_preds, y)
-        loss = 0.5 * (loss_mse + loss_cls)
-        return loss, y_preds, y
+        x_reconstr = self.forward(x.double())
+        loss = self.reconstr_loss(x_reconstr, x.view(x.size(0), -1))
+        return loss
 
     def training_step(self, batch: Any, batch_idx: int):
-        loss, y_preds, targets = self.common_step(batch)
+        loss = self.common_step(batch)
 
         # log train metrics
-        acc = self.train_acc(y_preds, targets)
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
-        self.log("train/acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in `training_epoch_end()`` below
         # remember to always return loss from `training_step()` or else backpropagation will fail!
-        return {"loss": loss, "preds": y_preds, "targets": targets}
+        return {"loss": loss}
 
     def training_epoch_end(self, outputs: List[Any]):
         # `outputs` is a list of dicts returned from `training_step()`
         pass
 
     def validation_step(self, batch: Any, batch_idx: int):
-        loss, y_preds, targets = self.common_step(batch)
+        loss = self.common_step(batch)
 
         # log val metrics
-        acc = self.val_acc(y_preds, targets)
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
-        self.log("val/acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
-        return {"loss": loss, "preds": y_preds, "targets": targets}
+        return {"loss": loss}
 
     def validation_epoch_end(self, outputs: List[Any]):
+        pass
+        ''''
         acc = self.val_acc.compute()  # get val accuracy from current epoch
         self.val_acc_best.update(acc)
         self.log("val/acc_best", self.val_acc_best.compute(), on_epoch=True, prog_bar=True)
+        '''
 
     def test_step(self, batch: Any, batch_idx: int):
-        loss, y_preds, targets = self.common_step(batch)
+        loss = self.common_step(batch)
 
         # log test metrics
-        acc = self.test_acc(y_preds, targets)
         self.log("test/loss", loss, on_step=False, on_epoch=True)
-        self.log("test/acc", acc, on_step=False, on_epoch=True)
 
-        return {"loss": loss, "preds": y_preds, "targets": targets}
+        return {"loss": loss}
 
     def test_epoch_end(self, outputs: List[Any]):
         pass
