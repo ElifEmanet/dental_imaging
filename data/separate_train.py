@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import csv
 
-df = pd.read_csv("annotation_all_imgs_checked.csv", header=0)
+df = pd.read_csv("annotations.csv", header=0)
 cl_new_arr = df.loc[:, "classification_new"]
 image_name_arr = df.loc[:, "new_file_name"]
 
