@@ -1,68 +1,89 @@
 from torch import nn
 
 
-class AE(nn.Module):
-    def __init__(
-        self,
-        input_size: int = 392,
-        lin1_size: int = 128,
-        lin2_size: int = 64,
-        output_size: int = 1,
-    ):
-        """
-            Args:
-                input_size (int): Size of input layer, namely the number of features.
-                lin1_size (int): Output dimension of the first linear layer.
-                lin2_size (int): Output dimension of the second linear layer.
-                output_size (int): Size of output, namely the number of classes.
-            Returns:
-                None.
-        """
-        super().__init__()
+class Encoder(nn.Module):
+    def __init__(self,
+                 latent_dim: int = 30):
+        super(Encoder, self).__init__()
 
-        self.flatten = nn.Flatten()
+        self.latent_dim = latent_dim
 
-        # Encoder: reduce the dimension of the input to the number of classes
-        self.encoder = nn.Sequential(
-            nn.Linear(input_size, lin1_size),
-            nn.BatchNorm1d(lin1_size),
-            nn.ReLU(True),
-            nn.Linear(lin1_size, lin2_size),
-            nn.BatchNorm1d(lin2_size),
-            nn.ReLU(True),
-            nn.Linear(lin2_size, output_size))
+        self.input_dim = int(392 / 64)  # 392 is the #pixels of our images and 64 = (stride)^(#conv layers)
+        # self.lin_input_dim = self.input_dim * self.input_dim * 512  # 512 = dimension out of the last conv layer
+        self.lin_input_dim = 392 * 64  # 392 is the #pixels of our images and 64 = (stride)^(#conv layers)
 
-        # Activation layer for the output of the encoder:
-        if output_size == 1:
-            self.act = nn.Sigmoid()
-        else:
-            self.act = nn.LogSoftmax(dim=1)
-
-            # Activation for the input to the decoder:
-            self.softmax = nn.Softmax(dim=1)
-
-            # Decoder: reconstruct the original input:
-            self.decoder = nn.Sequential(
-                nn.Linear(output_size, lin2_size),
-                nn.ReLU(True),
-                nn.Linear(lin2_size, lin1_size),
-                nn.ReLU(True), nn.Linear(lin1_size, input_size))
+        self.net = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, padding=1, stride=2),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, padding=1, stride=2),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1, stride=2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1, stride=2),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=3, padding=1, stride=2),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 512, kernel_size=3, padding=1, stride=2),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Flatten(),  # Image grid to single feature vector
+            nn.Linear(self.lin_input_dim, latent_dim)
+        )
 
     def forward(self, x):
-        """
-            Computes forward pass through the autoencoder.
-            Args:
-                x (torch.Tensor): The input of shape [batch_size, feature_dim]
-            Returns:
-                torch.Tensor: Reconstructed version of the input of shape [batch_size, feature_dim].
-                torch.Tensor: Output probabilities of shape [batch_size, num_classes].
-        """
+        return self.net(x)
 
-        out_en = self.encoder(self.flatten(x))
-        out = self.softmax(out_en)
-        out = self.decoder(out)
 
-        if self.output_size == 1:
-            return out, self.flatten(self.act(out_en))
+class Decoder(nn.Module):
+    def __init__(self,
+                 latent_dim: int = 30) -> None:
+        super(Decoder, self).__init__()
 
-        return out, self.act(out_en)
+        self.latent_dim = latent_dim
+        self.input_dim = int(392 / 64)  # 392 is the #pixels of our images and 64 = (stride)^(#conv layers)
+        # self.lin_input_dim = self.input_dim * self.input_dim * 512  # 512 = dimension out of the last conv layer
+        self.lin_input_dim = 392 * 64  # 392 is the #pixels of our images and 64 = (stride)^(#conv layers)
+
+        self.decoder_input = nn.Linear(latent_dim, self.lin_input_dim)
+
+        self.unflatten = nn.Unflatten(dim=1, unflattened_size=(512, self.input_dim, self.input_dim))
+
+        self.net = nn.Sequential(
+            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+        )
+
+        self.final_layer = nn.Sequential(
+            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.ConvTranspose2d(16, out_channels=1, kernel_size=3, padding=1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        x = self.decoder_input(x)
+        # x = x.reshape(-1, 512, 2, 2)
+        x = self.unflatten(x)
+        x = self.net(x)
+        x = self.final_layer(x)
+        return x
+

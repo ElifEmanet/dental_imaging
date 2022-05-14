@@ -1,10 +1,5 @@
-_target_: src.models.OPG_module.OPGLitModule
+_target_: src.models.opg_module.OPGLitModule
 lr: 0.001
 weight_decay: 0.0005
 
-net:
-  _target_: src.models.components.autoencoder.AE
-  input_size: 392
-  lin1_size: 128
-  lin2_size: 64
-  output_size: 1
+latent_dim: 30
