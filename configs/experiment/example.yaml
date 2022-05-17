@@ -29,6 +29,7 @@ model:
 
 datamodule:
   batch_size: 64
+  num_workers: 4
 
 logger:
   wandb:

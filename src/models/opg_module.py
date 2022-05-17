@@ -43,13 +43,14 @@ class OPGLitModule(LightningModule):
 
         # use separate metric instance for train, val and test step
         # to ensure a proper reduction over the epoch
-        # self.train_acc = Accuracy()
-        # self.val_acc = Accuracy()
-        # self.test_acc = Accuracy()
+        self.train_acc = Accuracy()
+        self.val_acc = Accuracy()
+        self.test_acc = Accuracy()
 
-        self.train_loss = MeanSquaredError()
-        self.val_loss = MeanSquaredError()
-        self.test_loss = MeanSquaredError()
+        # self.train_loss = MeanSquaredError()
+        #self.val_loss = MeanSquaredError()
+        # self.test_loss = MeanSquaredError()
+        self.loss = nn.MSELoss()
 
         # for logging best so far validation loss
         # self.val_acc_best = MaxMetric()
@@ -68,7 +69,7 @@ class OPGLitModule(LightningModule):
 
     def training_step(self, batch: Any, batch_idx: int):
         x, x_hat = self.common_step(batch)
-        loss = self.train_loss(x, x_hat)
+        loss = self.loss(x, x_hat)
 
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -84,7 +85,7 @@ class OPGLitModule(LightningModule):
 
     def validation_step(self, batch: Any, batch_idx: int):
         x, x_hat = self.common_step(batch)
-        loss = self.val_loss(x, x_hat)
+        loss = self.loss(x, x_hat)
 
         # log val metrics
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -92,13 +93,16 @@ class OPGLitModule(LightningModule):
         return {"loss": loss}
 
     def validation_epoch_end(self, outputs: List[Any]):
+        """"
         loss = self.val_loss.compute()  # get val accuracy from current epoch
         self.val_loss_best.update(loss)
         self.log("val/loss_best", self.val_loss_best.compute(), on_epoch=True, prog_bar=True)
+        """
+        pass
 
     def test_step(self, batch: Any, batch_idx: int):
         x, x_hat = self.common_step(batch)
-        loss = self.test_loss(x, x_hat)
+        loss = self.loss(x, x_hat)
 
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True)
@@ -107,12 +111,13 @@ class OPGLitModule(LightningModule):
 
     def test_epoch_end(self, outputs: List[Any]):
         pass
-
+    """
     def on_epoch_end(self):
         # reset metrics at the end of every epoch
-        self.train_loss.reset()
-        self.test_loss.reset()
-        self.val_loss.reset()
+        # self.train_loss.reset()
+        # self.test_loss.reset()
+        # self.val_loss.reset()
+    """
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
