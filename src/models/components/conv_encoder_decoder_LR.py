@@ -1,4 +1,4 @@
-from typing_extensions import StrictTypeGuard
+#from typing_extensions import StrictTypeGuard
 import numpy as np
 import torch
 import torch.nn as nn
@@ -9,7 +9,13 @@ import torch.optim as optim
 #encoder for 28 x 28 images
 class Encoder(nn.Module):
     
-    def __init__(self, encoded_space_dim,fc2_input_dim,stride, input_pxl):
+    def __init__(
+        self, 
+        encoded_space_dim: int = 10,
+        fc2_input_dim: int = 128,
+        stride: int = 2, 
+        input_pxl: int = 28
+        ):
         super().__init__()
 
         ### Convolutional section
@@ -42,7 +48,13 @@ class Encoder(nn.Module):
 #decoder for 28 x 28 images        
 class Decoder(nn.Module):
     
-    def __init__(self, encoded_space_dim,fc2_input_dim, stride, input_pxl):
+    def __init__(
+        self, 
+        encoded_space_dim: int = 10,
+        fc2_input_dim: int = 128,
+        stride: int = 2, 
+        input_pxl: int = 28
+        ):
         super().__init__()
         input_dim = int(((input_pxl/stride)/stride)/stride)
         self.decoder_lin = nn.Sequential(
@@ -74,4 +86,3 @@ class Decoder(nn.Module):
         x = self.decoder_conv(x)
         x = torch.sigmoid(x)
         return x
-        
