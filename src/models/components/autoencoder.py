@@ -88,6 +88,6 @@ class Decoder(nn.Module):
         # x = x.reshape(-1, 512, 2, 2)
         x = self.unflatten(x)
         x = self.net(x)
-        # x = self.final_layer(x)
+        x = self.final_layer(x)
         return x
 

@@ -3,3 +3,7 @@ lr: 0.001
 weight_decay: 0.0005
 
 latent_dim: 30
+encoded_space_dim: 10
+fc2_input_dim: 128
+stride: 2
+input_pxl: 28

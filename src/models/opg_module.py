@@ -7,7 +7,8 @@ from torchmetrics import MaxMetric
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanSquaredError
 
-from src.models.components.autoencoder import Encoder, Decoder
+# from src.models.components.autoencoder import Encoder, Decoder
+from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
 
 
 class OPGLitModule(LightningModule):
@@ -28,6 +29,10 @@ class OPGLitModule(LightningModule):
         latent_dim: int = 30,
         lr: float = 0.001,
         weight_decay: float = 0.0005,
+        encoded_space_dim: int = 10,
+        fc2_input_dim: int = 128,
+        stride: int = 2,
+        input_pxl: int = 28
     ):
         super().__init__()
 
@@ -35,8 +40,10 @@ class OPGLitModule(LightningModule):
         # it also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        self.encoder = Encoder(latent_dim).float()
-        self.decoder = Decoder(latent_dim).float()
+        self.encoder = Encoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # LR
+        self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # LR
+        # self.encoder = Encoder(latent_dim).float()  # EE
+        # self.decoder = Decoder(latent_dim).float()  # EE
 
         # Loss function for reconstruction:
         # self.reconstr_loss = nn.MSELoss()
