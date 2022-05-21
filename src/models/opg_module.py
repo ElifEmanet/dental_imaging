@@ -35,8 +35,8 @@ class OPGLitModule(LightningModule):
         # it also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        self.encoder = Encoder(latent_dim).double()
-        self.decoder = Decoder(latent_dim).double()
+        self.encoder = Encoder(latent_dim).float()
+        self.decoder = Decoder(latent_dim).float()
 
         # Loss function for reconstruction:
         # self.reconstr_loss = nn.MSELoss()
@@ -57,13 +57,13 @@ class OPGLitModule(LightningModule):
         self.val_loss_best = MaxMetric()
 
     def forward(self, x):
-        z = self.encoder(x.double())
-        x_hat = self.decoder(z.double())
+        z = self.encoder(x.float())
+        x_hat = self.decoder(z)
         return x_hat
 
     def common_step(self, batch: Any):
-        x = batch['image']
-        x_reconstr = self.forward(x.double())
+        x = batch['image'].float()
+        x_reconstr = self.forward(x.float())
         # loss = self.reconstr_loss(x_reconstr, x)
         return x, x_reconstr
 

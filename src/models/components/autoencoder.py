@@ -80,7 +80,7 @@ class Decoder(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.ConvTranspose2d(16, out_channels=1, kernel_size=3, padding=1),
-            nn.Sigmoid()
+            # nn.Sigmoid()
         )
 
     def forward(self, x):
