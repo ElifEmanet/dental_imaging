@@ -32,7 +32,8 @@ class OPGDataModule(pl.LightningDataModule):
 
         self.original_height = 415
         self.original_width = 540
-        self.dim = 392  # 28*14
+        # self.dim = 392  # 28*14
+        self.dim = 28  # 28*28
 
         # for rotate: mode = {‘reflect’, ‘constant’, ‘grid-constant’, ‘nearest’, ‘mirror’, ‘grid-wrap’, ‘wrap’}
         self.rotate = Rotate(np.random.uniform(-6, 6), False, 'reflect')
@@ -62,7 +63,7 @@ class OPGDataModule(pl.LightningDataModule):
              self.zoom,
              self.resize,
              ExpandDims(),
-             transforms.ToTensor()]
+             ToTensor()]
         )
 
         self.test_transforms = transforms.Compose(
