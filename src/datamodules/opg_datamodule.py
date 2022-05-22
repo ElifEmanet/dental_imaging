@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 from torchvision import transforms
 
 from src.dataset.dataset import OPGDataset, DataSubSet, AdjustContrast, Center, NormalizeIntensity, Rotate, RandomNoise, \
-    RandomCropAndResize, Sharpen, Resize, Blur, Zoom, RescalePixelDims, ExpandDims, ToTensor
+    RandomCropAndResize, Resize, Blur, Zoom, ExpandDims, ToTensor
 
 
 class OPGDataModule(pl.LightningDataModule):
@@ -53,8 +53,7 @@ class OPGDataModule(pl.LightningDataModule):
 
         # data transformations
         self.train_transforms = transforms.Compose(
-            [Center(),
-             NormalizeIntensity(),
+            [NormalizeIntensity(),
              AdjustContrast(1., 10., 0.),
              Blur(),
              self.rotate,
@@ -67,8 +66,7 @@ class OPGDataModule(pl.LightningDataModule):
         )
 
         self.test_transforms = transforms.Compose(
-            [Center(),
-             NormalizeIntensity(),
+            [NormalizeIntensity(),
              AdjustContrast(1., 10., 0.),
              self.resize,
              ExpandDims(),
@@ -102,12 +100,8 @@ class OPGDataModule(pl.LightningDataModule):
             self.train_trf_set = DataSubSet(self.train_set, transform=self.train_transforms)
             self.val_trf_set = DataSubSet(self.val_set, transform=self.test_transforms)
 
-            # self.dims = tuple(self.train_set[0][0].shape)
-
         if stage == "test" or stage is None:
             self.test_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_test_aug.csv", self.data_dir, transform=self.test_transforms)
-
-            # self.dims = tuple(self.test_set[0][0].shape)
 
     def train_dataloader(self):
         return DataLoader(self.train_trf_set, batch_size=self.batch_size)

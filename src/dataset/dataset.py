@@ -400,5 +400,3 @@ class ToTensor(object):
 
         return {'id': id, 'image': torch.from_numpy(image).type(torch.DoubleTensor),
                 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
-
-
