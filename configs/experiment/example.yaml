@@ -14,7 +14,7 @@ defaults:
 # this allows you to overwrite only specified parameters
 
 # name of the run determines folder name in logs
-name: "all but with dictionary, w/o center"
+name: "vae_1"
 data_dir: "/cluster/project/jbuhmann/dental_imaging/data/all_patches"  # CHANGE THIS!!!
 
 seed: 12345
