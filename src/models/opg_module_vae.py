@@ -27,7 +27,7 @@ class OPGLitModuleVAE(LightningModule):
 
     def __init__(
         self,
-        alpha: float,
+        beta: float,
         latent_dim: int = 30,
         lr: float = 0.001,
         weight_decay: float = 0.0005,
@@ -67,11 +67,10 @@ class OPGLitModuleVAE(LightningModule):
         self.val_loss_best = MinMetric()
 
         # Hyperparameter to control the importance of reconstruction loss vs KL-Divergence Loss
-        self.alpha = alpha
+        self.beta = beta
 
     def reparametrize(self, mu, log_var):
-        # Reparametrization Trick to allow gradients to backpropagate from the
-        # stochastic part of the model
+        # Reparametrization Trick to allow gradients to backpropagate from the stochastic part of the model
         sigma = torch.exp(0.5 * log_var)
         z = torch.randn_like(sigma)
         return mu + sigma * z
@@ -93,7 +92,7 @@ class OPGLitModuleVAE(LightningModule):
 
         kl_loss = (-0.5 * (1 + log_var - mu ** 2 - torch.exp(log_var)).sum(dim=1)).mean(dim=0)
         recon_loss = self.train_loss(x, x_hat)
-        loss = recon_loss * self.alpha + kl_loss
+        loss = kl_loss * self.beta + recon_loss
 
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -112,7 +111,7 @@ class OPGLitModuleVAE(LightningModule):
 
         kl_loss = (-0.5 * (1 + log_var - mu ** 2 - torch.exp(log_var)).sum(dim=1)).mean(dim=0)
         recon_loss = self.val_loss(x, x_hat)
-        loss = recon_loss * self.alpha + kl_loss
+        loss = recon_loss * self.beta + kl_loss
 
         # self.log('val_kl_loss', kl_loss, on_step=False, on_epoch=True, prog_bar=True)
         # self.log('val_recon_loss', recon_loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -131,7 +130,7 @@ class OPGLitModuleVAE(LightningModule):
 
         kl_loss = (-0.5 * (1 + log_var - mu ** 2 - torch.exp(log_var)).sum(dim=1)).mean(dim=0)
         recon_loss = self.test_loss(x, x_hat)
-        loss = recon_loss * self.alpha + kl_loss
+        loss = recon_loss * self.beta + kl_loss
 
         self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
 

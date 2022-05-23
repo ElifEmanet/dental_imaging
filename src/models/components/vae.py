@@ -34,10 +34,10 @@ class Encoder(nn.Module):
             nn.ReLU(True),
             nn.Linear(fc2_input_dim, encoded_space_dim)
         )
-        ### mu
+        ### mu: Mean of the latent Gaussian
         self.hidden2mu = nn.Linear(encoded_space_dim, encoded_space_dim)
 
-        ###
+        ### log_var: Standard deviation of the latent Gaussian
         self.hidden2log_var = nn.Linear(encoded_space_dim, encoded_space_dim)
 
     def forward(self, x):
