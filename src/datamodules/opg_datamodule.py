@@ -19,6 +19,7 @@ class OPGDataModule(pl.LightningDataModule):
             data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/all_patches",
             train_val_test_split: Tuple[int, int, int] = (55_000, 5_000, 10_000),
             batch_size: int = 32,
+            test_batch_size: int = 1,
             num_workers: int = 0,
             pin_memory: bool = False,
     ):
@@ -28,6 +29,7 @@ class OPGDataModule(pl.LightningDataModule):
         self.save_hyperparameters(logger=False)
 
         self.batch_size = batch_size
+        self.test_batch_size = test_batch_size
         self.data_dir = data_dir
 
         self.original_height = 415
@@ -110,4 +112,4 @@ class OPGDataModule(pl.LightningDataModule):
         return DataLoader(self.val_trf_set, batch_size=self.batch_size)
 
     def test_dataloader(self):
-        return DataLoader(self.test_set, batch_size=self.batch_size)
+        return DataLoader(self.test_set, batch_size=self.test_batch_size)

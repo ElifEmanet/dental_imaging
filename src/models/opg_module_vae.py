@@ -46,8 +46,8 @@ class OPGLitModuleVAE(LightningModule):
         # self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # LR
         # self.encoder = Encoder(latent_dim).float()  # EE
         # self.decoder = Decoder(latent_dim).float()  # EE
-        self.encoder = Encoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()
-        self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()
+        self.encoder = Encoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # VAE
+        self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # VAE
 
         # Loss function for reconstruction:
         # self.reconstr_loss = nn.MSELoss()

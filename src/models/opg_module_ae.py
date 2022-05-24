@@ -1,11 +1,13 @@
 from typing import Any, List
 
 import torch
+import numpy as np
+import pandas as pd
 import torch.nn as nn
 from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric, MinMetric
 from torchmetrics.classification.accuracy import Accuracy
-from torchmetrics import MeanSquaredError
+from torchmetrics import MeanSquaredError, MeanSquaredLogError
 
 # from src.models.components.autoencoder import Encoder, Decoder
 from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
@@ -57,11 +59,17 @@ class OPGLitModule(LightningModule):
         self.train_loss = MeanSquaredError()
         self.val_loss = MeanSquaredError()
         self.test_loss = MeanSquaredError()
-        self.loss = nn.MSELoss()
+        # self.test_loss = nn.MSELoss()
+
+        # self.train_loss = MeanSquaredLogError()
+        # self.val_loss = MeanSquaredLogError()
+        # self.test_loss = MeanSquaredLogError()
 
         # for logging best so far validation loss
         # self.val_acc_best = MaxMetric()
         self.val_loss_best = MinMetric()
+
+        self.train_losses = []
 
     def forward(self, x):
         z = self.encoder(x.float())
@@ -78,6 +86,8 @@ class OPGLitModule(LightningModule):
         x, x_hat = self.common_step(batch)
         # loss = self.loss(x, x_hat)
         loss = self.train_loss(x, x_hat)
+        # torch.cat((self.train_losses, loss), 0)
+        self.train_losses.append(loss.flatten().tolist())
 
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -108,14 +118,28 @@ class OPGLitModule(LightningModule):
         # pass
 
     def test_step(self, batch: Any, batch_idx: int):
+        y_test = batch['bin_class']
+
+        threshold = np.mean(torch.tensor(self.train_losses).numpy()) + np.std(torch.tensor(self.train_losses).numpy())
+        # threshold = np.mean(self.train_losses.numpy()) + np.std(loss_list.numpy())
         x, x_hat = self.common_step(batch)
         # loss = self.loss(x, x_hat)
         loss = self.test_loss(x, x_hat)
 
+        # threshold_tensor = torch.full(loss.size(), threshold)
+        # anomaly_mask = pd.Series(loss) > threshold
+        # preds = anomaly_mask.map(lambda x: 1.0 if x == True else 0.0)
+
+        comparison = loss > threshold  # returns a tensor of true and false, element-wise comparison with threshold
+        # 1 = anomaly, 0 = normal
+        pred = torch.full(y_test.size(), 1) if comparison else torch.full(y_test.size(), 0)
+        accuracy = self.test_acc(pred, y_test)
+
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True)
+        self.log("test/accuracy", accuracy, on_step=False, on_epoch=True)
 
-        return {"loss": loss}
+        return {"loss": loss, "accuracy": accuracy}
 
     def test_epoch_end(self, outputs: List[Any]):
         pass
@@ -125,7 +149,6 @@ class OPGLitModule(LightningModule):
         self.train_loss.reset()
         self.test_loss.reset()
         self.val_loss.reset()
-
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.

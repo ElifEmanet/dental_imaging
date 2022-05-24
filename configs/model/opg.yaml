@@ -1,8 +1,8 @@
-_target_: src.models.opg_module_vae.OPGLitModuleVAE
+_target_: src.models.opg_module_ae.OPGLitModule
 lr: 0.001
 weight_decay: 0.0005
 
-beta: 1.5
+# beta: 0.5
 latent_dim: 30
 encoded_space_dim: 10
 fc2_input_dim: 128
