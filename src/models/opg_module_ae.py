@@ -69,7 +69,7 @@ class OPGLitModule(LightningModule):
         # self.val_acc_best = MaxMetric()
         self.val_loss_best = MinMetric()
 
-        self.train_losses = []
+        # self.train_losses = []
 
     def forward(self, x):
         z = self.encoder(x.float())
@@ -87,7 +87,7 @@ class OPGLitModule(LightningModule):
         # loss = self.loss(x, x_hat)
         loss = self.train_loss(x, x_hat)
         # torch.cat((self.train_losses, loss), 0)
-        self.train_losses.append(loss.flatten().tolist())
+        # self.train_losses.append(loss.flatten().tolist())
 
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -120,7 +120,7 @@ class OPGLitModule(LightningModule):
     def test_step(self, batch: Any, batch_idx: int):
         y_test = batch['bin_class']
 
-        threshold = np.mean(torch.tensor(self.train_losses).numpy()) + np.std(torch.tensor(self.train_losses).numpy())
+        # threshold = np.mean(torch.tensor(self.train_losses).numpy()) + np.std(torch.tensor(self.train_losses).numpy())
         # threshold = np.mean(self.train_losses.numpy()) + np.std(loss_list.numpy())
         x, x_hat = self.common_step(batch)
         # loss = self.loss(x, x_hat)
@@ -129,17 +129,21 @@ class OPGLitModule(LightningModule):
         # threshold_tensor = torch.full(loss.size(), threshold)
         # anomaly_mask = pd.Series(loss) > threshold
         # preds = anomaly_mask.map(lambda x: 1.0 if x == True else 0.0)
-
-        comparison = loss > threshold  # returns a tensor of true and false, element-wise comparison with threshold
+        """""
+        # comparison = loss > threshold  # returns a tensor of true and false, element-wise comparison with threshold
         # 1 = anomaly, 0 = normal
-        pred = torch.full(y_test.size(), 1) if comparison else torch.full(y_test.size(), 0)
+        if comparison:
+            pred = torch.full(y_test.size(), 1, device='cpu')
+        else:
+            pred = torch.full(y_test.size(), 0, device='cpu')
         accuracy = self.test_acc(pred, y_test)
-
+        """
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True)
-        self.log("test/accuracy", accuracy, on_step=False, on_epoch=True)
+        # self.log("test/accuracy", accuracy, on_step=False, on_epoch=True)
 
-        return {"loss": loss, "accuracy": accuracy}
+        # return {"loss": loss, "accuracy": accuracy}
+        return {"loss": loss}
 
     def test_epoch_end(self, outputs: List[Any]):
         pass

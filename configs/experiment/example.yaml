@@ -14,14 +14,14 @@ defaults:
 # this allows you to overwrite only specified parameters
 
 # name of the run determines folder name in logs
-name: "ae_anomaly, accuracy inputs corrected"
+name: "ae, w/o anomaly, check"
 data_dir: "/cluster/project/jbuhmann/dental_imaging/data/all_patches"  # CHANGE THIS!!!
 
 seed: 12345
 
 trainer:
-  min_epochs: 1
-  max_epochs: 1
+  min_epochs: 10
+  max_epochs: 10
   gradient_clip_val: 0.5
 
 model:
