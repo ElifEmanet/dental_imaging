@@ -116,6 +116,12 @@ def train(config: DictConfig) -> Optional[float]:
     # Print path to best checkpoint
     if not config.trainer.get("fast_dev_run") and config.get("train"):
         log.info(f"Best model ckpt at {trainer.checkpoint_callback.best_model_path}")
+        with open("/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'a') as f:
+            f.write(f"Best model ckpt at {trainer.checkpoint_callback.best_model_path}")
+            f.write('\n')
+            f.write(f"The corresponding score is {trainer.checkpoint_callback.best_model_score}")
+            f.write('\n')
+            f.write('\n')
 
     # Return metric score for hyperparameter optimization
     return score

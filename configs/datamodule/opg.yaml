@@ -2,7 +2,7 @@ _target_: src.datamodules.opg_datamodule.OPGDataModule
 
 data_dir: ${data_dir} # data_dir is specified in config.yaml
 batch_size: 64
-test_batch_size: 1
+test_batch_size: 64
 train_val_test_split: [5451, 1363, 2218]
 num_workers: 0
 pin_memory: False

@@ -19,7 +19,7 @@ class OPGDataModule(pl.LightningDataModule):
             data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/all_patches",
             train_val_test_split: Tuple[int, int, int] = (55_000, 5_000, 10_000),
             batch_size: int = 32,
-            test_batch_size: int = 1,
+            test_batch_size: int = 64,
             num_workers: int = 0,
             pin_memory: bool = False,
     ):
