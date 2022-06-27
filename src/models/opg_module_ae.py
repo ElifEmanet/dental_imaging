@@ -1,16 +1,24 @@
-from typing import Any, List
-
 import torch
 import numpy as np
 import pandas as pd
 import torch.nn as nn
+import linecache
+import wandb
+import tensorflow as tf
+import torch.nn.functional as F
+
 from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric, MinMetric
 from torchmetrics.classification.accuracy import Accuracy
-from torchmetrics import MeanSquaredError, MeanSquaredLogError
+from torchmetrics import MeanSquaredError
+from sklearn.metrics import mean_squared_error, accuracy_score, confusion_matrix, precision_score, recall_score
+from typing import Any, List, Dict
+from datetime import datetime
 
 # from src.models.components.autoencoder import Encoder, Decoder
 from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
+from src.datamodules.opg_datamodule import OPGDataModule
+# from src.compute_threshold import get_threshold
 
 
 class OPGLitModule(LightningModule):
@@ -61,15 +69,18 @@ class OPGLitModule(LightningModule):
         self.test_loss = MeanSquaredError()
         # self.test_loss = nn.MSELoss()
 
-        # self.train_loss = MeanSquaredLogError()
-        # self.val_loss = MeanSquaredLogError()
-        # self.test_loss = MeanSquaredLogError()
-
         # for logging best so far validation loss
         # self.val_acc_best = MaxMetric()
         self.val_loss_best = MinMetric()
 
-        # self.train_losses = []
+        self.now = datetime.now()
+
+        # self.trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 1).strip()
+        self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
+
+        wandb.init(project="dental_imaging",
+                   name='check before pushing',
+                   settings=wandb.Settings(start_method='fork'))
 
     def forward(self, x):
         z = self.encoder(x.float())
@@ -86,8 +97,6 @@ class OPGLitModule(LightningModule):
         x, x_hat = self.common_step(batch)
         # loss = self.loss(x, x_hat)
         loss = self.train_loss(x, x_hat)
-        # torch.cat((self.train_losses, loss), 0)
-        # self.train_losses.append(loss.flatten().tolist())
 
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -118,35 +127,100 @@ class OPGLitModule(LightningModule):
         # pass
 
     def test_step(self, batch: Any, batch_idx: int):
-        y_test = batch['bin_class']
+        y_bin = batch['bin_class']
 
-        # threshold = np.mean(torch.tensor(self.train_losses).numpy()) + np.std(torch.tensor(self.train_losses).numpy())
-        # threshold = np.mean(self.train_losses.numpy()) + np.std(loss_list.numpy())
         x, x_hat = self.common_step(batch)
-        # loss = self.loss(x, x_hat)
         loss = self.test_loss(x, x_hat)
 
-        # threshold_tensor = torch.full(loss.size(), threshold)
-        # anomaly_mask = pd.Series(loss) > threshold
-        # preds = anomaly_mask.map(lambda x: 1.0 if x == True else 0.0)
-        """""
-        # comparison = loss > threshold  # returns a tensor of true and false, element-wise comparison with threshold
-        # 1 = anomaly, 0 = normal
-        if comparison:
-            pred = torch.full(y_test.size(), 1, device='cpu')
-        else:
-            pred = torch.full(y_test.size(), 0, device='cpu')
-        accuracy = self.test_acc(pred, y_test)
-        """
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True)
         # self.log("test/accuracy", accuracy, on_step=False, on_epoch=True)
 
         # return {"loss": loss, "accuracy": accuracy}
-        return {"loss": loss}
+        return {"loss": loss, "original_image": x, "reconstructed_image": x_hat, "y_bin": y_bin}
 
-    def test_epoch_end(self, outputs: List[Any]):
-        pass
+    def test_epoch_end(self, outputs):
+        # train dataloader:
+        # datamodule = OPGDataModule()
+        # train_dataloader = datamodule.train_dataloader()
+
+        # get current time to name the file
+        d1 = self.now.strftime("%d-%m-%Y_%H:%M:%S")
+
+        # get original images
+        xs = torch.cat([dict['original_image'] for dict in outputs])
+        xs_array = xs.cpu().numpy()  # numpy.ndarray of size (# test images, 1, 28, 28)
+        xs_array = xs_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
+        xs_array_red = xs_array.reshape((xs_array.shape[0], xs_array.shape[1]*xs_array.shape[2]))  # (# test images, 28*28)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/original_images' + d1, xs_array_red)
+
+        # get reconstructed images
+        x_hats = torch.cat([dict['reconstructed_image'] for dict in outputs])
+        x_hats_array = x_hats.cpu().numpy()  # numpy.ndarray of size (# test images, 1, 28, 28)
+        x_hats_array = x_hats_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
+        x_hats_array_red = x_hats_array.reshape(
+            (x_hats_array.shape[0], x_hats_array.shape[1] * x_hats_array.shape[2]))  # (# test images, 28*28)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/reconstructed_images' + d1, x_hats_array_red)
+
+        # compute mse for individual reconstructed images: mse_array has the size (# test images,)
+        mse_array = mean_squared_error(xs_array_red.transpose(), x_hats_array_red.transpose(), multioutput='raw_values')
+        np.save('/cluster/home/emanete/dental_imaging/test_results/mse' + d1, mse_array)
+        """""
+        # compute MAD for the test set:
+        median = np.median(mse_array)
+        median_array = np.full(mse_array.shape, float(median))
+        diff_array = median_array - mse_array
+        absolute_diff = np.absolute(diff_array)
+        mad = np.median(absolute_diff)
+
+        # for each test image compute the modified z-score:
+        mod_z_array = 0.6745 * (mse_array - median_array) / mad
+        np.save('/cluster/home/emanete/dental_imaging/test_results/mod_z_score' + d1, mod_z_array)
+
+        # get the threshold from the training images:
+        # threshold = get_threshold(self.trained_path)
+
+        # get the best model path and the best score:
+        with open(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'r') as fp:
+            num_lines = len(fp.readlines())  # the file score ends with an empty line, hence subtract 1 and 2 resp.
+        trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores",
+                                         num_lines - 2).strip()
+        threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores",
+                                      num_lines - 1).strip()
+        """""
+        # compare mse of each image with the threshold
+        bool_array = mse_array > float(self.threshold)  # for now, the threshold is just the best mse val score
+        # bool_array = np.absolute(mod_z_array) > 3.5
+
+        # convert boolean array to int array = predictions
+        int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
+        np.save('/cluster/home/emanete/dental_imaging/test_results/pred' + d1, int_array)
+
+        # get true classes:
+        ys = torch.cat([dict['y_bin'] for dict in outputs])
+        ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
+
+        np.save('/cluster/home/emanete/dental_imaging/test_results/true' + d1, ys_array)
+
+        # get accuracy and log
+        accuracy = accuracy_score(ys_array, int_array)
+        self.log("test/accuracy", accuracy, on_step=False, on_epoch=True)
+
+        # compute and save the confusion matrix
+        conf_matr = confusion_matrix(ys_array, int_array)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/conf_matrix' + d1, conf_matr)
+
+        # wandb.log({"conf_mat": wandb.plot.confusion_matrix(probs=None, y_true=ys_array, preds=int_array, class_names=["normal", "anomaly"])})
+
+        wandb.sklearn.plot_confusion_matrix(ys_array, int_array, ["normal", "anomaly"])
+
+        # precision
+        precision = precision_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')
+        self.log("test/precision", precision, on_step=False, on_epoch=True)
+
+        # recall
+        recall = recall_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')
+        self.log("test/recall", recall, on_step=False, on_epoch=True)
 
     def on_epoch_end(self):
         # reset metrics at the end of every epoch

@@ -2,6 +2,7 @@ from typing import Any, List
 
 import torch
 import torch.nn as nn
+import numpy as np
 from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric, MinMetric
 from torchmetrics.classification.accuracy import Accuracy
@@ -134,9 +135,11 @@ class OPGLitModuleVAE(LightningModule):
 
         self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
 
-        return {"loss": loss}
+        return {"loss": loss, 'x': x}
 
     def test_epoch_end(self, outputs: List[Any]):
+        x = torch.stack([item for key, item in outputs.items if key is 'loss'])
+        np.save(x.numpy(),'filename')
         pass
 
     def on_epoch_end(self):

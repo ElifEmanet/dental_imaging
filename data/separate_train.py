@@ -6,6 +6,7 @@ df = pd.read_csv("annotations.csv", header=0)
 cl_new_arr = df.loc[:, "classification_new"]
 image_name_arr = df.loc[:, "new_file_name"]
 
+
 """"
 # for the following column: 
 # 0: normal
@@ -26,9 +27,9 @@ writer_train = csv.writer(f_train)
 writer_test = csv.writer(f_test)
 
 # add column names:
-writer_test.writerow(['', 'new_file_name', 'orig_file_name', 'normal', 'anormal', 'artefacts', 'jaw', 'spine', 'tooth',
+writer_test.writerow(['new_file_name', 'orig_file_name', 'normal', 'anormal', 'artefacts', 'jaw', 'spine', 'tooth',
                       'dentition', 'comments', 'machine', 'classification_new'])
-writer_train.writerow(['', 'new_file_name', 'orig_file_name', 'normal', 'anormal', 'artefacts', 'jaw', 'spine', 'tooth',
+writer_train.writerow(['new_file_name', 'orig_file_name', 'normal', 'anormal', 'artefacts', 'jaw', 'spine', 'tooth',
                       'dentition', 'comments', 'machine', 'classification_new'])
 
 # these don't belong to the training set:
@@ -64,9 +65,9 @@ writer_train_select = csv.writer(f_train_select)
 writer_test_aug = csv.writer(f_test_aug)
 
 # add column names:
-writer_test_aug.writerow(['', 'new_file_name', 'orig_file_name', 'normal', 'anormal', 'artefacts', 'jaw', 'spine', 'tooth',
+writer_test_aug.writerow(['new_file_name', 'orig_file_name', 'normal', 'anormal', 'artefacts', 'jaw', 'spine', 'tooth',
                          'dentition', 'comments', 'machine', 'classification_new'])
-writer_train_select.writerow(['', 'new_file_name', 'orig_file_name', 'normal', 'anormal', 'artefacts', 'jaw', 'spine', 'tooth',
+writer_train_select.writerow(['new_file_name', 'orig_file_name', 'normal', 'anormal', 'artefacts', 'jaw', 'spine', 'tooth',
                              'dentition', 'comments', 'machine', 'classification_new'])
 
 # select from original training set randomly half as many rows as in the original test set:

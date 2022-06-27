@@ -32,10 +32,10 @@ class OPGDataset(Dataset):
         self.image_arr = np.asarray(self.frame.iloc[:, 0])
 
         # 12. column: machine (0 or 1)
-        self.machine_arr = np.asarray(self.frame.iloc[:, 11])
+        self.machine_arr = np.asarray(self.frame.iloc[:, 10])
 
         # 13. column: classification_new (integer)
-        self.cl_new_arr = np.asarray(self.frame.iloc[:, 12])
+        self.cl_new_arr = np.asarray(self.frame.iloc[:, 11])
 
     def __len__(self):
         return len(self.frame)

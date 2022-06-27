@@ -1,0 +1,37 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /datamodule: opg.yaml
+  - override /model: opg.yaml
+  - override /callbacks: default.yaml
+  - override /logger: wandb.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+# name of the run determines folder name in logs
+name: "store best validation score"
+data_dir: "/cluster/project/jbuhmann/dental_imaging/data/all_patches"  # CHANGE THIS!!!
+
+seed: 12345
+
+trainer:
+  min_epochs: 10
+  max_epochs: 10
+  gradient_clip_val: 0.5
+
+model:
+  model: 'conv_ae'
+  lr: 0.001
+
+datamodule:
+  batch_size: 64
+  num_workers: 4
+
+logger:
+  wandb:
+    tags: ["opg", "${name}"]
