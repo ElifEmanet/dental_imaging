@@ -18,7 +18,7 @@ from datetime import datetime
 # from src.models.components.autoencoder import Encoder, Decoder
 from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
 from src.datamodules.opg_datamodule import OPGDataModule
-# from src.compute_threshold import get_threshold
+from src.compute_threshold import get_threshold
 
 
 class OPGLitModule(LightningModule):
@@ -76,10 +76,10 @@ class OPGLitModule(LightningModule):
         self.now = datetime.now()
 
         # self.trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 1).strip()
-        self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
+        # self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
 
         wandb.init(project="dental_imaging",
-                   name='check before pushing',
+                   name='threshold extern',
                    settings=wandb.Settings(start_method='fork'))
 
     def forward(self, x):
@@ -179,17 +179,24 @@ class OPGLitModule(LightningModule):
 
         # get the threshold from the training images:
         # threshold = get_threshold(self.trained_path)
-
+        """""
         # get the best model path and the best score:
         with open(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'r') as fp:
             num_lines = len(fp.readlines())  # the file score ends with an empty line, hence subtract 1 and 2 resp.
         trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores",
                                          num_lines - 2).strip()
-        threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores",
-                                      num_lines - 1).strip()
-        """""
+        # threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores",
+                                      # num_lines - 1).strip()
+
+        # check:
+        np.save('/cluster/home/emanete/dental_imaging/test_results/current_path' + d1, trained_path)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/threshold' + d1, threshold)
+
+        # get training data
+        thr = get_threshold(trained_path)
+
         # compare mse of each image with the threshold
-        bool_array = mse_array > float(self.threshold)  # for now, the threshold is just the best mse val score
+        bool_array = mse_array > float(thr)  # for now, the threshold is just the best mse val score
         # bool_array = np.absolute(mod_z_array) > 3.5
 
         # convert boolean array to int array = predictions
