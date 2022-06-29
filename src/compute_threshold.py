@@ -4,7 +4,8 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 from datetime import datetime
 
-import src.models.opg_module_ae
+# import src.models.opg_module_ae
+import src.models.opg_module_vae
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -15,6 +16,7 @@ from src.dataset.dataset import OPGDataset, AdjustContrast, NormalizeIntensity, 
 
 def get_threshold(
         path_to_best_model: str,
+        IS_VAE: bool,
         batch_size: int = 32
 ):
     # get the training images
@@ -51,7 +53,7 @@ def get_threshold(
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
 
     # load the best model
-    loaded_model = src.models.opg_module_ae.OPGLitModule.load_from_checkpoint(checkpoint_path=path_to_best_model)
+    loaded_model = src.models.opg_module_vae.OPGLitModuleVAE.load_from_checkpoint(checkpoint_path=path_to_best_model)
     loaded_model.eval()
 
     # compute the average loss for the training images with the best model
@@ -59,7 +61,10 @@ def get_threshold(
     with torch.no_grad():
         for batch_idx, sample in enumerate(train_dataloader):
             images = sample['image']  # has shape [training_batch_size  1 28 28]
-            reconstructed_images = loaded_model(images)
+            if IS_VAE:
+                _, _, reconstructed_images = loaded_model(images)
+            else:
+                reconstructed_images = loaded_model(images)
 
             images_array = images.cpu().numpy()  # numpy.ndarray of size (training_batch_size, 1, 28, 28)
             rec_images_array = reconstructed_images.cpu().numpy()  # same

@@ -4,8 +4,6 @@ import pandas as pd
 import torch.nn as nn
 import linecache
 import wandb
-import tensorflow as tf
-import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric, MinMetric
@@ -17,7 +15,6 @@ from datetime import datetime
 
 # from src.models.components.autoencoder import Encoder, Decoder
 from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
-from src.datamodules.opg_datamodule import OPGDataModule
 from src.compute_threshold import get_threshold
 
 
@@ -79,7 +76,7 @@ class OPGLitModule(LightningModule):
         # self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
 
         wandb.init(project="dental_imaging",
-                   name='threshold extern',
+                   name='threshold extern, 10 epochs',
                    settings=wandb.Settings(start_method='fork'))
 
     def forward(self, x):
@@ -192,11 +189,11 @@ class OPGLitModule(LightningModule):
         np.save('/cluster/home/emanete/dental_imaging/test_results/current_path' + d1, trained_path)
         # np.save('/cluster/home/emanete/dental_imaging/test_results/threshold' + d1, threshold)
 
-        # get training data
-        thr = get_threshold(trained_path)
+        # get training images' average mse loss on the best model
+        thr = get_threshold(trained_path, False)
 
         # compare mse of each image with the threshold
-        bool_array = mse_array > float(thr)  # for now, the threshold is just the best mse val score
+        bool_array = mse_array > float(thr)
         # bool_array = np.absolute(mod_z_array) > 3.5
 
         # convert boolean array to int array = predictions

@@ -1,16 +1,20 @@
 from typing import Any, List
 
 import torch
-import torch.nn as nn
+import linecache
+import wandb
 import numpy as np
 from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric, MinMetric
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanSquaredError
+from sklearn.metrics import mean_squared_error, accuracy_score, confusion_matrix, precision_score, recall_score
+from datetime import datetime
 
 # from src.models.components.autoencoder import Encoder, Decoder
 # from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
 from src.models.components.vae import Encoder, Decoder
+from src.compute_threshold import get_threshold
 
 
 class OPGLitModuleVAE(LightningModule):
@@ -70,6 +74,12 @@ class OPGLitModuleVAE(LightningModule):
         # Hyperparameter to control the importance of reconstruction loss vs KL-Divergence Loss
         self.beta = beta
 
+        self.now = datetime.now()
+
+        wandb.init(project="dental_imaging",
+                   name='vae 1 epoch',
+                   settings=wandb.Settings(start_method='fork'))
+
     def reparametrize(self, mu, log_var):
         # Reparametrization Trick to allow gradients to backpropagate from the stochastic part of the model
         sigma = torch.exp(0.5 * log_var)
@@ -127,6 +137,8 @@ class OPGLitModuleVAE(LightningModule):
         # pass
 
     def test_step(self, batch: Any, batch_idx: int):
+        y_bin = batch['bin_class']
+
         x, mu, log_var, x_hat = self.common_step(batch)
 
         kl_loss = (-0.5 * (1 + log_var - mu ** 2 - torch.exp(log_var)).sum(dim=1)).mean(dim=0)
@@ -135,12 +147,74 @@ class OPGLitModuleVAE(LightningModule):
 
         self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
 
-        return {"loss": loss, 'x': x}
+        return {"loss": loss, "original_image": x, "reconstructed_image": x_hat, "y_bin": y_bin}
 
     def test_epoch_end(self, outputs: List[Any]):
-        x = torch.stack([item for key, item in outputs.items if key is 'loss'])
-        np.save(x.numpy(),'filename')
-        pass
+        # get current time to name the file
+        d1 = self.now.strftime("%d-%m-%Y_%H:%M:%S")
+
+        # get original images
+        xs = torch.cat([dict['original_image'] for dict in outputs])
+        xs_array = xs.cpu().numpy()  # numpy.ndarray of size (# test images, 1, 28, 28)
+        xs_array = xs_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
+        xs_array_red = xs_array.reshape(
+            (xs_array.shape[0], xs_array.shape[1] * xs_array.shape[2]))  # (# test images, 28*28)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_original_images' + d1, xs_array_red)
+
+        # get reconstructed images
+        x_hats = torch.cat([dict['reconstructed_image'] for dict in outputs])
+        x_hats_array = x_hats.cpu().numpy()  # numpy.ndarray of size (# test images, 1, 28, 28)
+        x_hats_array = x_hats_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
+        x_hats_array_red = x_hats_array.reshape(
+            (x_hats_array.shape[0], x_hats_array.shape[1] * x_hats_array.shape[2]))  # (# test images, 28*28)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_reconstructed_images' + d1, x_hats_array_red)
+
+        # compute mse for individual reconstructed images: mse_array has the size (# test images,)
+        mse_array = mean_squared_error(xs_array_red.transpose(), x_hats_array_red.transpose(), multioutput='raw_values')
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_mse' + d1, mse_array)
+
+        # get the best model path:
+        with open(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'r') as fp:
+            num_lines = len(fp.readlines())  # the file score ends with an empty line, hence subtract 1 and 2 resp.
+        trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores",
+                                         num_lines - 2).strip()
+
+        # check:
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_current_path' + d1, trained_path)
+
+        # get training images' average mse loss on the best model
+        thr = get_threshold(trained_path, True)
+
+        # compare mse of each image with the threshold
+        bool_array = mse_array > float(thr)
+
+        # convert boolean array to int array = predictions
+        int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_pred' + d1, int_array)
+
+        # get true classes:
+        ys = torch.cat([dict['y_bin'] for dict in outputs])
+        ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
+
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_true' + d1, ys_array)
+
+        # get accuracy and log
+        accuracy = accuracy_score(ys_array, int_array)
+        self.log("test/accuracy", accuracy, on_step=False, on_epoch=True)
+
+        # compute and save the confusion matrix
+        conf_matr = confusion_matrix(ys_array, int_array)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_conf_matrix' + d1, conf_matr)
+
+        wandb.sklearn.plot_confusion_matrix(ys_array, int_array, ["normal", "anomaly"])
+
+        # precision
+        precision = precision_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')
+        self.log("test/precision", precision, on_step=False, on_epoch=True)
+
+        # recall
+        recall = recall_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')
+        self.log("test/recall", recall, on_step=False, on_epoch=True)
 
     def on_epoch_end(self):
         # reset metrics at the end of every epoch
