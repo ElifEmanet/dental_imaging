@@ -77,7 +77,7 @@ class OPGLitModuleVAE(LightningModule):
         self.now = datetime.now()
 
         wandb.init(project="dental_imaging",
-                   name='vae 1 epoch',
+                   name='vae 10 epoch, latent = 2',
                    settings=wandb.Settings(start_method='fork'))
 
     def reparametrize(self, mu, log_var):

@@ -76,7 +76,7 @@ class OPGLitModule(LightningModule):
         # self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
 
         wandb.init(project="dental_imaging",
-                   name='threshold extern, 10 epochs',
+                   name='ae 10 epochs, lat = 2',
                    settings=wandb.Settings(start_method='fork'))
 
     def forward(self, x):

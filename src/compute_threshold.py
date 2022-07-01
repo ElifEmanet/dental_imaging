@@ -4,9 +4,6 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 from datetime import datetime
 
-# import src.models.opg_module_ae
-import src.models.opg_module_vae
-
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
@@ -36,11 +33,6 @@ def get_threshold(
     train_transforms = transforms.Compose(
         [NormalizeIntensity(),
          AdjustContrast(1., 10., 0.),
-         Blur(),
-         rotate,
-         random_noise,
-         random_crop,
-         zoom,
          resize,
          ExpandDims(),
          ToTensor()]
@@ -53,7 +45,13 @@ def get_threshold(
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
 
     # load the best model
-    loaded_model = src.models.opg_module_vae.OPGLitModuleVAE.load_from_checkpoint(checkpoint_path=path_to_best_model)
+    if IS_VAE:
+        import src.models.opg_module_vae
+        loaded_model = src.models.opg_module_vae.OPGLitModuleVAE.load_from_checkpoint(checkpoint_path=path_to_best_model)
+    else:
+        import src.models.opg_module_ae
+        loaded_model = src.models.opg_module_ae.OPGLitModule.load_from_checkpoint(checkpoint_path=path_to_best_model)
+
     loaded_model.eval()
 
     # compute the average loss for the training images with the best model
