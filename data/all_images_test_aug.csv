@@ -465,8 +465,6 @@ new_file_name,orig_file_name,normal,anormal,artefacts,jaw,spine,tooth,dentition,
 18_08-114_r,Patient Anonymized-OFgofrVWYGMjntxFaQsQsdHeuQZzflmy-SIDEXIS Study-20180829-3--PX-2-067,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
 18_08-131_l,Patient Anonymized-lUFjKrntHoHdBQPOvsbyzSgLRrEDI-SIDEXIS Study-20180806-6949058--PX-2-167,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
 18_08-131_r,Patient Anonymized-lUFjKrntHoHdBQPOvsbyzSgLRrEDI-SIDEXIS Study-20180806-6949058--PX-2-167,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
-18_08-137_l,Patient Anonymized-kXQtXeYrZIAePrnoCebmctHdrIxVexKLUiwFkHnKXVQlQTcJfiFILgJYsmAvVVI-SIDEXIS Study-20180831-2271154400399--PX-2-004,nan,x,x,nan,nan,nan,nan,nan,0,nan
-18_08-137_r,Patient Anonymized-kXQtXeYrZIAePrnoCebmctHdrIxVexKLUiwFkHnKXVQlQTcJfiFILgJYsmAvVVI-SIDEXIS Study-20180831-2271154400399--PX-2-004,nan,x,x,nan,nan,nan,nan,nan,0,nan
 18_08-138_l,Patient Anonymized-kWapxEyZgwBCveBVPYLyDGRicQmNYzlusHrNMlqkfY-SIDEXIS Study-20180821-4061015479--PX-2-189,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
 18_08-138_r,Patient Anonymized-kWapxEyZgwBCveBVPYLyDGRicQmNYzlusHrNMlqkfY-SIDEXIS Study-20180821-4061015479--PX-2-189,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
 18_08-142_l,Patient Anonymized-KmlDgtCwbBTwVmXHURrAfoLckHniWvo-SIDEXIS Study-20180822-881--PX-2-065,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
@@ -775,8 +773,6 @@ new_file_name,orig_file_name,normal,anormal,artefacts,jaw,spine,tooth,dentition,
 19_02-26_r,Patient Anonymized-IaSleqTXlPyJjGmKIyuEFouZteRcaRQUyDZQXzkk-SIDEXIS Study-20190218-4036114580212136--PX-2-76,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
 19_02-37_l,Patient Anonymized-kUDZTWqyETOLfrquCQVEvmNXidAzolGOZDFWxOyYEHFPYpjrO-SIDEXIS Study-20190218-197018515877174--PX-2-44,x,nan,nan,x,nan,nan,nan,nan,0,2.0
 19_02-37_r,Patient Anonymized-kUDZTWqyETOLfrquCQVEvmNXidAzolGOZDFWxOyYEHFPYpjrO-SIDEXIS Study-20190218-197018515877174--PX-2-44,x,nan,nan,x,nan,nan,nan,nan,0,2.0
-19_02-45_l,Patient Anonymized-mpJVfwHYJpcBDt-SIDEXIS Study-20190220-31521987722118--PX-2-45,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
-19_02-45_r,Patient Anonymized-mpJVfwHYJpcBDt-SIDEXIS Study-20190220-31521987722118--PX-2-45,nan,x,x,nan,nan,nan,nan,nan,0,nan
 19_02-46_l,Patient Anonymized-ndlvLLKVFUtAMbJDFiNp-SIDEXIS Study-20190222-092450--PX-2-62,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
 19_02-46_r,Patient Anonymized-ndlvLLKVFUtAMbJDFiNp-SIDEXIS Study-20190222-092450--PX-2-62,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
 19_02-66_l,Patient Anonymized-uakpWTFhdhkqzLSUdtQLmGdDrBmDEWaZkrUwr-SIDEXIS Study-20190227-13690622--PX-2-57,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
@@ -1107,8 +1103,6 @@ new_file_name,orig_file_name,normal,anormal,artefacts,jaw,spine,tooth,dentition,
 17_12-75_r,Patient Anonymized-FmAqlQeSMJIWWiXNsvlYsOuKsRccHSZwnyNcSgJIQgATDcKHF-SIDEXIS Study-20171221-81--PX-2-08,x,nan,x,x,nan,nan,nan,nan,0,11.0
 17_12-90_l,Patient Anonymized-oezytjIsMLnukdaSgyJXhCokCHhHrEpTYQUkueDxEsrLkFzdISiicEAIgfC-SIDEXIS Study-20171222-6--PX-2-28,nan,x,nan,nan,nan,nan,nan,50/300,0,8.0
 17_12-90_r,Patient Anonymized-oezytjIsMLnukdaSgyJXhCokCHhHrEpTYQUkueDxEsrLkFzdISiicEAIgfC-SIDEXIS Study-20171222-6--PX-2-28,nan,x,nan,nan,nan,nan,nan,50/350,0,8.0
-17_12-91_l,Patient Anonymized-oNgUfLgIGegzRsfD-SIDEXIS Study-20171207-009238--PX-2-01,x,nan,x,nan,nan,nan,nan,nan,0,11.0
-17_12-91_r,Patient Anonymized-oNgUfLgIGegzRsfD-SIDEXIS Study-20171207-009238--PX-2-01,nan,?,x,nan,nan,nan,nan,nan,0,nan
 17_12-97_l,Patient Anonymized-QOJtRyAVVyviFYDQfGhrTORJQGhSirhMBQ-SIDEXIS Study-20171207-967--PX-2-45,x,nan,x,nan,nan,x,nan,nan,0,11.0
 17_12-97_r,Patient Anonymized-QOJtRyAVVyviFYDQfGhrTORJQGhSirhMBQ-SIDEXIS Study-20171207-967--PX-2-45,x,nan,x,nan,nan,x,nan,nan,0,11.0
 17_12-98_l,Patient Anonymized-QtOHiMxsnEYOqoZgGmxVvEkfHoyKnqbh-SIDEXIS Study-20171207-05303839148--PX-2-38,x,nan,x,nan,nan,nan,nan,nan,0,11.0
@@ -1253,8 +1247,6 @@ new_file_name,orig_file_name,normal,anormal,artefacts,jaw,spine,tooth,dentition,
 18_03-183_r,Patient Anonymized-rFIDKCpAGmWGRaxPkiahjoGbzKmnXZJGuUgCAEkqvVMyqLMkyyJ-SIDEXIS Study-20180306-305--PX-2-117,nan,x,nan,nan,nan,nan,nan,200/150,0,8.0
 18_03-188_l,Patient Anonymized-pNKRnSRzoTaWsEopvkNozuz-SIDEXIS Study-20180329-65093300482--PX-2-081,x,nan,x,x,nan,nan,nan,nan,0,11.0
 18_03-188_r,Patient Anonymized-pNKRnSRzoTaWsEopvkNozuz-SIDEXIS Study-20180329-65093300482--PX-2-081,x,nan,x,x,nan,nan,nan,nan,0,11.0
-18_03-192_l,Patient Anonymized-pDeuyeaQxIpL-SIDEXIS Study-20180322-77724381705--PX-2-005,nan,x,x,nan,x,nan,nan,nan,0,nan
-18_03-192_r,Patient Anonymized-pDeuyeaQxIpL-SIDEXIS Study-20180322-77724381705--PX-2-005,nan,x,nan,nan,x,nan,nan,400/220,0,8.0
 18_03-196_l,Patient Anonymized-OjrCAYclEixFvqcpZrlEHEkmNhkaecFfbAJEzBEkknhPitDN-SIDEXIS Study-20180301-983833--PX-2-002,x,nan,x,x,nan,nan,nan,nan,0,11.0
 18_03-196_r,Patient Anonymized-OjrCAYclEixFvqcpZrlEHEkmNhkaecFfbAJEzBEkknhPitDN-SIDEXIS Study-20180301-983833--PX-2-002,x,nan,x,x,nan,nan,nan,nan,0,11.0
 18_03-204_l,Patient Anonymized-MfivXrtFlrqIPzeJPYWXCSviqBlWUeFVNfBzIPufIxsVLPvVmK-SIDEXIS Study-20180327-02--PX-2-066,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
@@ -1505,8 +1497,6 @@ new_file_name,orig_file_name,normal,anormal,artefacts,jaw,spine,tooth,dentition,
 18_08-37_r,Patient Anonymized-wQOzrdGyHroijbNUYnMkYJdkSyQGwUbXYzUwT-SIDEXIS Study-20180829-6408067252482--PX-2-119,nan,x,nan,nan,nan,nan,nan,100/320,0,8.0
 18_08-41_l,Patient Anonymized-Wm-SIDEXIS Study-20180823-172064094--PX-2-118,nan,x,nan,nan,x,nan,nan,380/350,0,8.0
 18_08-41_r,Patient Anonymized-Wm-SIDEXIS Study-20180823-172064094--PX-2-118,nan,x,nan,nan,x,nan,nan,430/270,0,8.0
-18_08-59_l,Patient Anonymized-uctwZKruOZPmDNLnVzHhoCtBkPifsVdGtjsjITTQjWVRxiURQs-SIDEXIS Study-20180814-624074939--PX-2-026,x,nan,x,nan,nan,nan,nan,nan,0,11.0
-18_08-59_r,Patient Anonymized-uctwZKruOZPmDNLnVzHhoCtBkPifsVdGtjsjITTQjWVRxiURQs-SIDEXIS Study-20180814-624074939--PX-2-026,nan,x,x,nan,nan,nan,nan,nan,0,nan
 18_08-63_l,Patient Anonymized-ssjCSovk-SIDEXIS Study-20180820-38598--PX-2-122,x,nan,nan,nan,nan,nan,nan,nan,0,0.0
 18_08-63_r,Patient Anonymized-ssjCSovk-SIDEXIS Study-20180820-38598--PX-2-122,?,?,nan,nan,nan,nan,nan,350/160,0,8.0
 18_08-64_l,Patient Anonymized-SPzkyKlwpOXVCxwaRkz-SIDEXIS Study-20180803-020316648040373--PX-2-001,x,nan,x,x,nan,nan,nan,nan,0,11.0
@@ -2055,8 +2045,6 @@ new_file_name,orig_file_name,normal,anormal,artefacts,jaw,spine,tooth,dentition,
 19_08-57_r,Patient Anonymized-rBRJaPzEPLxEYherFJHJbNAwaQsosuiPCwTtKqbBTEEZYDfCHCCsOBwd-SIDEXIS Study-20190815-68--PX-2-33,x,nan,x,nan,nan,nan,nan,nan,0,11.0
 19_08-62_l,Patient Anonymized-TIjFLuZkyWcPdeZKIiWNzlXJWdzBTgnmeaTHrqCxaQYgzhunE-SIDEXIS Study-20190805-6210174776321669--PX-2-38,nan,x,nan,nan,x,nan,nan,200/300,0,8.0
 19_08-62_r,Patient Anonymized-TIjFLuZkyWcPdeZKIiWNzlXJWdzBTgnmeaTHrqCxaQYgzhunE-SIDEXIS Study-20190805-6210174776321669--PX-2-38,nan,x,nan,nan,x,nan,nan,350/380,0,8.0
-19_08-64_l,Patient Anonymized-twFJFqYeISJmvNaJozkPfXmlnztJJYUkYTBBKzypCSrgurzhBfhp-SIDEXIS Study-20190823-71572908735--PX-2-35,nan,x,nan,nan,nan,nan,nan,200/350,0,8.0
-19_08-64_r,Patient Anonymized-twFJFqYeISJmvNaJozkPfXmlnztJJYUkYTBBKzypCSrgurzhBfhp-SIDEXIS Study-20190823-71572908735--PX-2-35,nan,x,x,nan,nan,nan,nan,nan,0,nan
 19_08-77_l,Patient Anonymized-YJznKLiDsWVnWvuDjRKwrxttHyhnKtwE-SIDEXIS Study-20190822-1--PX-2-48,nan,x,nan,nan,nan,nan,nan,100/300,0,8.0
 19_08-77_r,Patient Anonymized-YJznKLiDsWVnWvuDjRKwrxttHyhnKtwE-SIDEXIS Study-20190822-1--PX-2-48,nan,x,nan,nan,nan,nan,nan,180/250,0,8.0
 19_08-79_l,Patient Anonymized-zfbpfQmMeBxo-SIDEXIS Study-20190806-2364400--PX-2-04,nan,x,nan,nan,nan,nan,nan,200/350,0,8.0

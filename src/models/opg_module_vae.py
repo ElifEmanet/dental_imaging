@@ -77,7 +77,7 @@ class OPGLitModuleVAE(LightningModule):
         self.now = datetime.now()
 
         wandb.init(project="dental_imaging",
-                   name='vae 10 epoch, latent = 2',
+                   name='vae 1 epoch, latent = 5, b = 0.1',
                    settings=wandb.Settings(start_method='fork'))
 
     def reparametrize(self, mu, log_var):
@@ -183,7 +183,7 @@ class OPGLitModuleVAE(LightningModule):
         np.save('/cluster/home/emanete/dental_imaging/test_results/vae_current_path' + d1, trained_path)
 
         # get training images' average mse loss on the best model
-        thr = get_threshold(trained_path, True)
+        thr, _ = get_threshold(trained_path, True)
 
         # compare mse of each image with the threshold
         bool_array = mse_array > float(thr)
@@ -215,6 +215,9 @@ class OPGLitModuleVAE(LightningModule):
         # recall
         recall = recall_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')
         self.log("test/recall", recall, on_step=False, on_epoch=True)
+
+        # log beta:
+        self.log("beta", self.beta, on_step=False, on_epoch=True)
 
     def on_epoch_end(self):
         # reset metrics at the end of every epoch

@@ -15,7 +15,7 @@ class Encoder(nn.Module):
         fc2_input_dim: int = 128,
         stride: int = 2, 
         input_pxl: int = 28
-        ):
+    ):
         super().__init__()
 
         ### Convolutional section

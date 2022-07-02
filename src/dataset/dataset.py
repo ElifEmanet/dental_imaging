@@ -66,7 +66,8 @@ class OPGDataset(Dataset):
         cl_new = self.cl_new_arr[index]
 
         # binary class:
-        artefacts = [8, 10, 11]
+        # artefacts = [8, 10, 11]
+        artefacts = [8]
         if cl_new in artefacts:
             bin_class = 1
         else:
