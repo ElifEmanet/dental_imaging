@@ -58,21 +58,21 @@ def get_threshold(
 
     # compute the average loss for the training images with the best model
     mse_array_to_average = np.zeros(1)
-    z_array_start = np.zeros((1, lat_dim))
-    train_class_array_start = np.zeros(1)
+    # z_array_start = np.zeros((1, lat_dim))
+    # train_class_array_start = np.zeros(1)
 
     with torch.no_grad():
         for batch_idx, sample in enumerate(train_dataloader):
             images = sample['image']  # has shape [training_batch_size  1 28 28]
             if IS_VAE:
-                mu, log_var = loaded_model.encoder(images.float())
-                z = loaded_model.reparametrize(mu, log_var)
+                # mu, log_var = loaded_model.encoder(images.float())
+                # z = loaded_model.reparametrize(mu, log_var)
                 _, _, reconstructed_images = loaded_model(images)
             else:
-                z = loaded_model.encoder(images.float())
+                # z = loaded_model.encoder(images.float())
                 reconstructed_images = loaded_model(images)
 
-            z_array = z.cpu().numpy()
+            # z_array = z.cpu().numpy()
             images_array = images.cpu().numpy()  # numpy.ndarray of size (training_batch_size, 1, 28, 28)
             rec_images_array = reconstructed_images.cpu().numpy()  # same
 
@@ -87,23 +87,23 @@ def get_threshold(
             mse_array = mean_squared_error(im_array_red.transpose(), rec_im_array_red.transpose(),
                                            multioutput='raw_values')  # (training_batch_size,)
 
-            z_array_start = np.concatenate((z_array_start, z_array))
+            # z_array_start = np.concatenate((z_array_start, z_array))
             mse_array_to_average = np.append(mse_array_to_average, mse_array)
 
             d1 = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
             # np.save('/cluster/home/emanete/dental_imaging/test_results/mse_training' + d1, mse_array_to_average)
             # np.save('/cluster/home/emanete/dental_imaging/test_results/latent_repr' + d1, z_array)
 
-            train_class = sample['cl_new']
-            train_class_array = train_class.cpu().numpy()
-            train_class_array_start = np.append(train_class_array_start, train_class_array)
+            # train_class = sample['cl_new']
+            # train_class_array = train_class.cpu().numpy()
+            # train_class_array_start = np.append(train_class_array_start, train_class_array)
 
-    z_array_final = z_array_start[1:, :]
+    # z_array_final = z_array_start[1:, :]
     mse_array_final = mse_array_to_average[1:]
-    train_class_array_final = train_class_array_start[1:]
+    # train_class_array_final = train_class_array_start[1:]
     # np.save('/cluster/home/emanete/dental_imaging/test_results/mse_final_array' + d1, mse_array_final)
     average_loss = np.average(mse_array_final)
     # np.save('/cluster/home/emanete/dental_imaging/test_results/lat_repr' + d1, z_array_final)
-    np.save('/cluster/home/emanete/dental_imaging/test_results/train_class' + d1, train_class_array_final)
+    # np.save('/cluster/home/emanete/dental_imaging/test_results/train_class' + d1, train_class_array_final)
 
-    return average_loss, z_array_final
+    return average_loss # , z_array_final

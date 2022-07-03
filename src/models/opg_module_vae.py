@@ -4,12 +4,15 @@ import torch
 import linecache
 import wandb
 import numpy as np
+import matplotlib.pyplot as plt
+
 from pytorch_lightning import LightningModule
-from torchmetrics import MaxMetric, MinMetric
+from torchmetrics import MinMetric
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanSquaredError
 from sklearn.metrics import mean_squared_error, accuracy_score, confusion_matrix, precision_score, recall_score
 from datetime import datetime
+from sklearn.manifold import TSNE
 
 # from src.models.components.autoencoder import Encoder, Decoder
 # from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
@@ -73,11 +76,14 @@ class OPGLitModuleVAE(LightningModule):
 
         # Hyperparameter to control the importance of reconstruction loss vs KL-Divergence Loss
         self.beta = beta
+        self.encoded_space_dim = encoded_space_dim
 
         self.now = datetime.now()
 
+        self.name = "vae, 1 ep, lat = 5, tsne"
+
         wandb.init(project="dental_imaging",
-                   name='vae 1 epoch, latent = 5, b = 0.1',
+                   name=self.name,
                    settings=wandb.Settings(start_method='fork'))
 
     def reparametrize(self, mu, log_var):
@@ -138,16 +144,22 @@ class OPGLitModuleVAE(LightningModule):
 
     def test_step(self, batch: Any, batch_idx: int):
         y_bin = batch['bin_class']
+        y_class = batch['cl_new']
 
-        x, mu, log_var, x_hat = self.common_step(batch)
+        x = batch['image'].float()
+        mu, log_var, x_hat = self.forward(x.float())
 
         kl_loss = (-0.5 * (1 + log_var - mu ** 2 - torch.exp(log_var)).sum(dim=1)).mean(dim=0)
         recon_loss = self.test_loss(x, x_hat)
         loss = recon_loss * self.beta + kl_loss
 
+        lat_repr = self.reparametrize(mu, log_var)
+
         self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
 
-        return {"loss": loss, "original_image": x, "reconstructed_image": x_hat, "y_bin": y_bin}
+        return {"loss": loss, "original_image": x,
+                "reconstructed_image": x_hat, "y_bin": y_bin,
+                "cl_new": y_class, "latent_repr": lat_repr}
 
     def test_epoch_end(self, outputs: List[Any]):
         # get current time to name the file
@@ -159,7 +171,7 @@ class OPGLitModuleVAE(LightningModule):
         xs_array = xs_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
         xs_array_red = xs_array.reshape(
             (xs_array.shape[0], xs_array.shape[1] * xs_array.shape[2]))  # (# test images, 28*28)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_original_images' + d1, xs_array_red)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/vae_original_images' + d1, xs_array_red)
 
         # get reconstructed images
         x_hats = torch.cat([dict['reconstructed_image'] for dict in outputs])
@@ -167,7 +179,7 @@ class OPGLitModuleVAE(LightningModule):
         x_hats_array = x_hats_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
         x_hats_array_red = x_hats_array.reshape(
             (x_hats_array.shape[0], x_hats_array.shape[1] * x_hats_array.shape[2]))  # (# test images, 28*28)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_reconstructed_images' + d1, x_hats_array_red)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/vae_reconstructed_images' + d1, x_hats_array_red)
 
         # compute mse for individual reconstructed images: mse_array has the size (# test images,)
         mse_array = mean_squared_error(xs_array_red.transpose(), x_hats_array_red.transpose(), multioutput='raw_values')
@@ -180,31 +192,37 @@ class OPGLitModuleVAE(LightningModule):
                                          num_lines - 2).strip()
 
         # check:
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_current_path' + d1, trained_path)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/vae_current_path' + d1, trained_path)
 
         # get training images' average mse loss on the best model
-        thr, _ = get_threshold(trained_path, True)
+        # thr, train_lat_repr = get_threshold(trained_path, True, self.encoded_space_dim)
+        thr = get_threshold(trained_path, True, self.encoded_space_dim)
+
+        # save the latent representations of test images
+        lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])
+        lat_reprs_array = lat_reprs.cpu().numpy()
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_lat_repr' + d1, lat_reprs_array)
 
         # compare mse of each image with the threshold
         bool_array = mse_array > float(thr)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_pred' + d1, int_array)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/vae_pred' + d1, int_array)
 
         # get true classes:
         ys = torch.cat([dict['y_bin'] for dict in outputs])
         ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
 
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_true' + d1, ys_array)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/vae_true' + d1, ys_array)
 
         # get accuracy and log
         accuracy = accuracy_score(ys_array, int_array)
         self.log("test/accuracy", accuracy, on_step=False, on_epoch=True)
 
         # compute and save the confusion matrix
-        conf_matr = confusion_matrix(ys_array, int_array)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_conf_matrix' + d1, conf_matr)
+        # conf_matr = confusion_matrix(ys_array, int_array)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/vae_conf_matrix' + d1, conf_matr)
 
         wandb.sklearn.plot_confusion_matrix(ys_array, int_array, ["normal", "anomaly"])
 
@@ -218,6 +236,34 @@ class OPGLitModuleVAE(LightningModule):
 
         # log beta:
         self.log("beta", self.beta, on_step=False, on_epoch=True)
+
+        # get classifications for plotting
+        y_class = torch.cat([dict['cl_new'] for dict in outputs])
+        y_class_array = y_class.cpu().numpy()
+
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_true_class' + d1, y_class_array)
+
+        # now plot the latent representations:
+        # tsne_plot(lat_reprs_array, y_class_array, self.name)
+        tsne = TSNE(perplexity=3, n_components=2, init='pca', n_iter=1000, random_state=32, metric='cosine')
+        lat_r_t = tsne.fit_transform(lat_reprs_array)
+
+        plt.figure(figsize=(12, 8))
+        plt.scatter(lat_r_t[np.where(y_class_array == 0), 0], lat_r_t[np.where(y_class_array == 0), 1],
+                    color="blue", alpha=0.8, label='0')
+        plt.scatter(lat_r_t[np.where(y_class_array == 1), 0], lat_r_t[np.where(y_class_array == 1), 1],
+                    color="green", alpha=0.8, label='1')
+        plt.scatter(lat_r_t[np.where(y_class_array == 2), 0], lat_r_t[np.where(y_class_array == 2), 1],
+                    color="red", alpha=0.8, label='2')
+        plt.scatter(lat_r_t[np.where(y_class_array == 8), 0], lat_r_t[np.where(y_class_array == 8), 1],
+                    color="orange", alpha=0.8, label='8')
+        plt.scatter(lat_r_t[np.where(y_class_array == 10), 0], lat_r_t[np.where(y_class_array == 10), 1],
+                    color="cyan", alpha=0.8, label='10')
+        plt.scatter(lat_r_t[np.where(y_class_array == 11), 0], lat_r_t[np.where(y_class_array == 11), 1],
+                    color="magenta", alpha=0.8, label='11')
+        plt.legend(loc='best')
+
+        wandb.log({"plot": plt})
 
     def on_epoch_end(self):
         # reset metrics at the end of every epoch

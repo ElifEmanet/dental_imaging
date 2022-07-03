@@ -1,7 +1,5 @@
 import torch
 import numpy as np
-import pandas as pd
-import torch.nn as nn
 import matplotlib.pyplot as plt
 import linecache
 import wandb
@@ -195,9 +193,10 @@ class OPGLitModule(LightningModule):
         # np.save('/cluster/home/emanete/dental_imaging/test_results/threshold' + d1, threshold)
 
         # get the threshold and the latent representations of the training images on the best model
-        thr, lat_repr = get_threshold(trained_path, False, self.encoded_space_dim)
+        # thr, lat_repr = get_threshold(trained_path, False, self.encoded_space_dim)
+        thr = get_threshold(trained_path, False, self.encoded_space_dim)
         # lat_repr: numpy array of size (# test images, latent dim)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/train_lat_repr' + d1, lat_repr)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/train_lat_repr' + d1, lat_repr)
 
         # save the latent representations of test images
         lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])

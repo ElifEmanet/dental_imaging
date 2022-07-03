@@ -4,7 +4,7 @@
 
 defaults:
   - override /datamodule: opg.yaml
-  - override /model: opg_ae.yaml  # opg_ae.yaml, opg_vae.yaml
+  - override /model: opg_vae.yaml  # opg_ae.yaml, opg_vae.yaml
   - override /callbacks: default.yaml
   - override /logger: wandb.yaml
   - override /trainer: default.yaml
@@ -13,19 +13,19 @@ defaults:
 # this allows you to overwrite only specified parameters
 
 # name of the run determines folder name in logs
-name: "ae 1 epoch, latent = 5, save z"
+name: "vae, 1 ep, lat = 5, tsne"
 data_dir: "/cluster/project/jbuhmann/dental_imaging/data/all_patches"  # CHANGE THIS!!!
 
 seed: 12345
 
 model:
-  # beta: 0.1  # uncomment for vae
+  beta: 0.3  # uncomment for vae
   lr: 0.002
   encoded_space_dim: 5
 
 trainer:
-  min_epochs: 1
-  max_epochs: 1
+  min_epochs: 10
+  max_epochs: 10
   gradient_clip_val: 0.5
 
 datamodule:
