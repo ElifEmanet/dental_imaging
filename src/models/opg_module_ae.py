@@ -165,7 +165,7 @@ class OPGLitModule(LightningModule):
         # compute mse for individual reconstructed images: mse_array has the size (# test images,)
         mse_array = mean_squared_error(xs_array_red.transpose(), x_hats_array_red.transpose(), multioutput='raw_values')
         # np.save('/cluster/home/emanete/dental_imaging/test_results/mse' + d1, mse_array)
-        """""
+
         # compute MAD for the test set:
         median = np.median(mse_array)
         median_array = np.full(mse_array.shape, float(median))
@@ -179,7 +179,7 @@ class OPGLitModule(LightningModule):
 
         # get the threshold from the training images:
         # threshold = get_threshold(self.trained_path)
-        """""
+
         # get the best model path and the best score:
         with open(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'r') as fp:
             num_lines = len(fp.readlines())  # the file score ends with an empty line, hence subtract 1 and 2 resp.
@@ -194,7 +194,7 @@ class OPGLitModule(LightningModule):
 
         # get the threshold and the latent representations of the training images on the best model
         # thr, lat_repr = get_threshold(trained_path, False, self.encoded_space_dim)
-        thr = get_threshold(trained_path, False, self.encoded_space_dim)
+        # thr = get_threshold(trained_path, False, self.encoded_space_dim)
         # lat_repr: numpy array of size (# test images, latent dim)
         # np.save('/cluster/home/emanete/dental_imaging/test_results/train_lat_repr' + d1, lat_repr)
 
@@ -204,8 +204,8 @@ class OPGLitModule(LightningModule):
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_lat_repr' + d1, lat_reprs_array)
 
         # compare mse of each image with the threshold
-        bool_array = mse_array > float(thr)
-        # bool_array = np.absolute(mod_z_array) > 3.5
+        # bool_array = mse_array > float(thr)
+        bool_array = np.absolute(mod_z_array) > 3
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
@@ -214,6 +214,7 @@ class OPGLitModule(LightningModule):
         # get true classes:
         ys = torch.cat([dict['y_bin'] for dict in outputs])
         ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/test_bin' + d1, ys_array)
 
         # get accuracy and log
         accuracy = accuracy_score(ys_array, int_array)
