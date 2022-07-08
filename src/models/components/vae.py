@@ -21,13 +21,15 @@ class Encoder(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(True),
             nn.Conv2d(16, 32, 3, stride=stride, padding=0),
+            nn.ReLU(True),
+            nn.Conv2d(32, 64, 3, stride=stride, padding=0),
             nn.ReLU(True)
         )
 
         ### Flatten layer
         self.flatten = nn.Flatten(start_dim=1)
         ### Linear section
-        input_dim = int(((input_pxl / stride) / stride) / stride)
+        input_dim = int(((input_pxl / stride) / stride) / stride / stride)
 
         self.encoder_lin = nn.Sequential(
             nn.Linear(input_dim * input_dim * 32, fc2_input_dim),
@@ -60,7 +62,7 @@ class Decoder(nn.Module):
             input_pxl: int = 28
     ):
         super().__init__()
-        input_dim = int(((input_pxl / stride) / stride) / stride)
+        input_dim = int(((input_pxl / stride) / stride) / stride / stride)
         self.decoder_lin = nn.Sequential(
             nn.Linear(encoded_space_dim, fc2_input_dim),
             nn.ReLU(True),
@@ -71,6 +73,8 @@ class Decoder(nn.Module):
         self.unflatten = nn.Unflatten(dim=1, unflattened_size=(32, input_dim, input_dim))
 
         self.decoder_conv = nn.Sequential(
+            nn.ConvTranspose2d(64, 32, 3, stride=stride, output_padding=0),
+            nn.ReLU(True),
             nn.ConvTranspose2d(32, 16, 3, stride=stride, output_padding=0),
             nn.BatchNorm2d(16),
             nn.ReLU(True),

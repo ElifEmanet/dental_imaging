@@ -15,7 +15,7 @@ from sklearn.manifold import TSNE
 
 # from src.models.components.autoencoder import Encoder, Decoder
 from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
-from src.compute_threshold import get_threshold
+from src.compute_threshold import get_threshold, multivariate_gaussian
 from tsne_plot import tsne_plot
 
 
@@ -34,13 +34,14 @@ class OPGLitModule(LightningModule):
 
     def __init__(
         self,
+        prob: float,
         latent_dim: int = 30,
         lr: float = 0.001,
         weight_decay: float = 0.0005,
         encoded_space_dim: int = 10,
         fc2_input_dim: int = 128,
         stride: int = 2,
-        input_pxl: int = 28
+        input_pxl: int = 28,
     ):
         super().__init__()
 
@@ -48,6 +49,7 @@ class OPGLitModule(LightningModule):
         # it also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
         self.encoded_space_dim = encoded_space_dim
+        self.input_pxl = input_pxl
 
         self.encoder = Encoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # LR
         self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # LR
@@ -73,6 +75,8 @@ class OPGLitModule(LightningModule):
         self.val_loss_best = MinMetric()
 
         self.now = datetime.now()
+
+        self.prob = prob
 
         # self.trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 1).strip()
         # self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
@@ -147,12 +151,16 @@ class OPGLitModule(LightningModule):
         # get current time to name the file
         d1 = self.now.strftime("%d-%m-%Y_%H:%M:%S")
 
+        # log parameters:
+        self.log("threshold probability", self.prob, on_step=False, on_epoch=True)
+        self.log("latent dimension", self.encoded_space_dim, on_step=False, on_epoch=True)
+
         # get original images
         xs = torch.cat([dict['original_image'] for dict in outputs])
         xs_array = xs.cpu().numpy()  # numpy.ndarray of size (# test images, 1, 28, 28)
         xs_array = xs_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
         xs_array_red = xs_array.reshape((xs_array.shape[0], xs_array.shape[1]*xs_array.shape[2]))  # (# test images, 28*28)
-        # np.save('/cluster/home/emanete/dental_imaging/test_results/original_images' + d1, xs_array_red)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/original_images' + d1, xs_array_red)
 
         # get reconstructed images
         x_hats = torch.cat([dict['reconstructed_image'] for dict in outputs])
@@ -160,12 +168,12 @@ class OPGLitModule(LightningModule):
         x_hats_array = x_hats_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
         x_hats_array_red = x_hats_array.reshape(
             (x_hats_array.shape[0], x_hats_array.shape[1] * x_hats_array.shape[2]))  # (# test images, 28*28)
-        # np.save('/cluster/home/emanete/dental_imaging/test_results/reconstructed_images' + d1, x_hats_array_red)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/reconstructed_images' + d1, x_hats_array_red)
 
         # compute mse for individual reconstructed images: mse_array has the size (# test images,)
         mse_array = mean_squared_error(xs_array_red.transpose(), x_hats_array_red.transpose(), multioutput='raw_values')
-        # np.save('/cluster/home/emanete/dental_imaging/test_results/mse' + d1, mse_array)
-
+        np.save('/cluster/home/emanete/dental_imaging/test_results/mse' + d1, mse_array)
+        """""
         # compute MAD for the test set:
         median = np.median(mse_array)
         median_array = np.full(mse_array.shape, float(median))
@@ -179,7 +187,7 @@ class OPGLitModule(LightningModule):
 
         # get the threshold from the training images:
         # threshold = get_threshold(self.trained_path)
-
+        """""
         # get the best model path and the best score:
         with open(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'r') as fp:
             num_lines = len(fp.readlines())  # the file score ends with an empty line, hence subtract 1 and 2 resp.
@@ -194,18 +202,22 @@ class OPGLitModule(LightningModule):
 
         # get the threshold and the latent representations of the training images on the best model
         # thr, lat_repr = get_threshold(trained_path, False, self.encoded_space_dim)
-        # thr = get_threshold(trained_path, False, self.encoded_space_dim)
-        # lat_repr: numpy array of size (# test images, latent dim)
-        # np.save('/cluster/home/emanete/dental_imaging/test_results/train_lat_repr' + d1, lat_repr)
+        thr, mu, var = get_threshold(trained_path, False, self.encoded_space_dim, self.input_pxl)
 
         # save the latent representations of test images
-        lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])
+        lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])  # has the dim: [# test images, lat_dim]
         lat_reprs_array = lat_reprs.cpu().numpy()
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_lat_repr' + d1, lat_reprs_array)
 
+        # probabilities for test images' latent representations
+        p_array = multivariate_gaussian(lat_reprs.cpu().numpy(), mu, var)  # has size (test images,)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/test_prob' + str(self.prob) + d1, p_array)
+        # p_array = p.cpu().numpy()
+
         # compare mse of each image with the threshold
-        # bool_array = mse_array > float(thr)
-        bool_array = np.absolute(mod_z_array) > 3
+        bool_array = mse_array > float(thr)
+        # bool_array = np.absolute(mod_z_array) > 3
+        # bool_array = p_array < self.prob
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
@@ -244,6 +256,7 @@ class OPGLitModule(LightningModule):
 
         # now plot the latent representations:
         # tsne_plot(lat_reprs_array, y_class_array, self.name)
+        """""
         tsne = TSNE(perplexity=3, n_components=2, init='pca', n_iter=1000, random_state=32, metric='cosine')
         lat_r_t = tsne.fit_transform(lat_reprs_array)
 
@@ -263,6 +276,7 @@ class OPGLitModule(LightningModule):
         plt.legend(loc='best')
 
         wandb.log({"plot": plt})
+        """""
 
     def on_epoch_end(self):
         # reset metrics at the end of every epoch
@@ -280,3 +294,4 @@ class OPGLitModule(LightningModule):
         return torch.optim.Adam(
             params=self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay
         )
+

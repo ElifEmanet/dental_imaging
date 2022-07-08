@@ -38,6 +38,7 @@ class Encoder(nn.Module):
         self.encoder_lin = nn.Sequential(
             nn.Linear(input_dim * input_dim * 64, fc2_input_dim),
             nn.ReLU(True),
+            nn.Dropout(0.4),
             nn.Linear(fc2_input_dim, encoded_space_dim)
         )
         
