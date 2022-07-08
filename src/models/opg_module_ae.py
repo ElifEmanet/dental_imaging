@@ -210,14 +210,14 @@ class OPGLitModule(LightningModule):
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_lat_repr' + d1, lat_reprs_array)
 
         # probabilities for test images' latent representations
-        p_array = multivariate_gaussian(lat_reprs.cpu().numpy(), mu, var)  # has size (test images,)
+        p_array = multivariate_gaussian(lat_reprs_array, mu, var)  # has size (test images,)
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_prob' + str(self.prob) + d1, p_array)
         # p_array = p.cpu().numpy()
 
         # compare mse of each image with the threshold
-        bool_array = mse_array > float(thr)
+        # bool_array = mse_array > float(thr)
         # bool_array = np.absolute(mod_z_array) > 3
-        # bool_array = p_array < self.prob
+        bool_array = p_array < self.prob
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1

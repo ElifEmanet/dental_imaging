@@ -119,8 +119,8 @@ def get_threshold(
 def multivariate_gaussian(X, mu, var):
     k = len(mu)  # k = latent dim
     sigma = np.diag(var)  # (k, k)
-    X = X - mu.T  # (# images, k)
-    expo_1 = np.matmul(X, np.linalg.pinv(sigma))
-    expo = np.matmul(expo_1, X.transpose()).diagonal()
+    X_ = X - mu.T  # (# images, k)
+    expo_1 = np.matmul(X_, np.linalg.pinv(sigma))
+    expo = np.matmul(expo_1, X_.transpose()).diagonal()
     p = 1/((2*np.pi)**(k/2)*(np.linalg.det(sigma)**0.5)) * expo  # p is a number
     return p
