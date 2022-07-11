@@ -8,7 +8,7 @@ from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric, MinMetric
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanSquaredError
-from sklearn.metrics import mean_squared_error, accuracy_score, confusion_matrix, precision_score, recall_score
+from sklearn.metrics import mean_squared_error, accuracy_score, confusion_matrix, precision_score, recall_score, roc_auc_score
 from typing import Any, List, Dict
 from datetime import datetime
 from sklearn.manifold import TSNE
@@ -244,8 +244,12 @@ class OPGLitModule(LightningModule):
         # wandb.log({"conf_mat": wandb.plot.confusion_matrix(probs=None, y_true=ys_array, preds=int_array, class_names=["normal", "anomaly"])})
         # confusion matrix
         wandb.sklearn.plot_confusion_matrix(ys_array, int_array, ["normal", "anomaly"])
-        wandb.log({"pr": wandb.plot.pr_curve(ys_array, int_array, ["normal", "anomaly"], classes_to_plot=None)})
-        wandb.log({"roc": wandb.plot.roc_curve(ys_array, int_array, ["normal", "anomaly"], classes_to_plot=None)})
+        # wandb.log({"pr": wandb.plot.pr_curve(ys_array, int_array, ["normal", "anomaly"], classes_to_plot=None)})
+        # wandb.log({"roc": wandb.plot.roc_curve(ys_array, int_array, ["normal", "anomaly"], classes_to_plot=None)})
+
+        # AUROC
+        roc_auc = roc_auc_score(int_array, p_array)
+        self.log("test/roc_auc", roc_auc, on_step=False, on_epoch=True)
 
         # precision
         precision = precision_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')
