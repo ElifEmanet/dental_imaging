@@ -80,7 +80,7 @@ class OPGLitModule(LightningModule):
 
         # self.trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 1).strip()
         # self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
-        self.name = "ae 1 ep, lat = 2, epsilon by cv saved"
+        self.name = "ae 1 ep, lat = 2, thr converted"
 
         wandb.init(project="dental_imaging",
                    name=self.name,
@@ -227,7 +227,7 @@ class OPGLitModule(LightningModule):
         # bool_array = mse_array > float(average_loss)
         # bool_array = np.absolute(mod_z_array) > 3
         # bool_array = p_array < self.prob
-        bool_array = p_array < float(ep)
+        bool_array = p_array > float(ep)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
@@ -244,6 +244,8 @@ class OPGLitModule(LightningModule):
         # wandb.log({"conf_mat": wandb.plot.confusion_matrix(probs=None, y_true=ys_array, preds=int_array, class_names=["normal", "anomaly"])})
         # confusion matrix
         wandb.sklearn.plot_confusion_matrix(ys_array, int_array, ["normal", "anomaly"])
+        wandb.log({"pr": wandb.plot.pr_curve(ys_array, int_array, ["normal", "anomaly"], classes_to_plot=None)})
+        wandb.log({"roc": wandb.plot.roc_curve(ys_array, int_array, ["normal", "anomaly"], classes_to_plot=None)})
 
         # precision
         precision = precision_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')
