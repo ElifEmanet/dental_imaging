@@ -225,7 +225,7 @@ class OPGLitModuleVAE(LightningModule):
 
         # compare mse of each image with the threshold
         # bool_array = mse_array > float(average_loss)
-        bool_array = p_array < float(ep)
+        bool_array = p_array > float(ep)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
