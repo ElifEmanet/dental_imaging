@@ -219,9 +219,9 @@ class OPGLitModule(LightningModule):
         ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_bin' + d1, ys_array)
 
-        fscore, ep = select_threshold(p_array, ys_array)
+        score, ep = select_threshold(p_array, ys_array)
         np.save('/cluster/home/emanete/dental_imaging/test_results/ep' + d1, ep)
-        self.log("f1_score", fscore, on_step=False, on_epoch=True)
+        self.log("score", score, on_step=False, on_epoch=True)
 
         # compare mse of each image with the threshold
         # bool_array = mse_array > float(average_loss)
@@ -248,7 +248,7 @@ class OPGLitModule(LightningModule):
         # wandb.log({"roc": wandb.plot.roc_curve(ys_array, int_array, ["normal", "anomaly"], classes_to_plot=None)})
 
         # AUROC
-        roc_auc = roc_auc_score(int_array, p_array)
+        roc_auc = roc_auc_score(ys_array, p_array)
         self.log("test/roc_auc", roc_auc, on_step=False, on_epoch=True)
 
         # precision

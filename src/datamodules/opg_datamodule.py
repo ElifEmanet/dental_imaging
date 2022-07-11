@@ -106,10 +106,10 @@ class OPGDataModule(pl.LightningDataModule):
             self.test_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_test_aug.csv", self.data_dir, transform=self.test_transforms)
 
     def train_dataloader(self):
-        return DataLoader(self.train_trf_set, batch_size=self.batch_size)
+        return DataLoader(self.train_trf_set, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_trf_set, batch_size=self.batch_size)
+        return DataLoader(self.val_trf_set, batch_size=self.batch_size, shuffle=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test_set, batch_size=self.test_batch_size)
+        return DataLoader(self.test_set, batch_size=self.test_batch_size, shuffle=True)

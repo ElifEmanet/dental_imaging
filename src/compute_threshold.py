@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from sklearn.metrics import mean_squared_error, f1_score
+from sklearn.metrics import mean_squared_error, f1_score, accuracy_score
 from datetime import datetime
 
 from torch.utils.data import DataLoader
@@ -125,15 +125,16 @@ def multivariate_gaussian(x, mu, covar):
 
 def select_threshold(probs, test_data):
     best_epsilon = 0
-    best_f1 = 0
+    best_score = 0
     f = 0
     stepsize = (max(probs) - min(probs)) / 1000
     epsilons = np.arange(min(probs), max(probs), stepsize)
     for epsilon in np.nditer(epsilons):
         predictions = (probs < epsilon)
         f = f1_score(test_data, predictions, average='binary')
-        if f > best_f1:
-            best_f1 = f
+        # f = accuracy_score(test_data, predictions)
+        if f > best_score:
+            best_score = f
             best_epsilon = epsilon
 
-    return best_f1, best_epsilon
+    return best_score, best_epsilon
