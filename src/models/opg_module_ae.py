@@ -15,7 +15,7 @@ from sklearn.manifold import TSNE
 
 # from src.models.components.autoencoder import Encoder, Decoder
 from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
-from src.compute_threshold import get_threshold, multivariate_gaussian
+from src.compute_threshold import get_threshold, multivariate_gaussian, select_threshold
 from tsne_plot import tsne_plot
 
 
@@ -80,7 +80,7 @@ class OPGLitModule(LightningModule):
 
         # self.trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 1).strip()
         # self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
-        self.name = "ae 1 epoch, latent = 5, save z"
+        self.name = "ae 1 ep, lat = 2, epsilon by cv saved"
 
         wandb.init(project="dental_imaging",
                    name=self.name,
@@ -202,7 +202,7 @@ class OPGLitModule(LightningModule):
 
         # get the threshold and the latent representations of the training images on the best model
         # thr, lat_repr = get_threshold(trained_path, False, self.encoded_space_dim)
-        thr, mu, var = get_threshold(trained_path, False, self.encoded_space_dim, self.input_pxl)
+        average_loss, mu, var = get_threshold(trained_path, False, self.encoded_space_dim, self.input_pxl)
 
         # save the latent representations of test images
         lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])  # has the dim: [# test images, lat_dim]
@@ -214,19 +214,24 @@ class OPGLitModule(LightningModule):
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_prob' + str(self.prob) + d1, p_array)
         # p_array = p.cpu().numpy()
 
-        # compare mse of each image with the threshold
-        # bool_array = mse_array > float(thr)
-        # bool_array = np.absolute(mod_z_array) > 3
-        bool_array = p_array < self.prob
-
-        # convert boolean array to int array = predictions
-        int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
-        # np.save('/cluster/home/emanete/dental_imaging/test_results/pred' + d1, int_array)
-
         # get true classes:
         ys = torch.cat([dict['y_bin'] for dict in outputs])
         ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_bin' + d1, ys_array)
+
+        fscore, ep = select_threshold(p_array, ys_array)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/ep' + d1, ep)
+        self.log("f1_score", fscore, on_step=False, on_epoch=True)
+
+        # compare mse of each image with the threshold
+        # bool_array = mse_array > float(average_loss)
+        # bool_array = np.absolute(mod_z_array) > 3
+        # bool_array = p_array < self.prob
+        bool_array = p_array < float(ep)
+
+        # convert boolean array to int array = predictions
+        int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/pred' + d1, int_array)
 
         # get accuracy and log
         accuracy = accuracy_score(ys_array, int_array)

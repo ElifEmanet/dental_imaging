@@ -1,11 +1,13 @@
 import torch
 import numpy as np
 
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, f1_score
 from datetime import datetime
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
+
+from scipy.stats import multivariate_normal
 
 from src.dataset.dataset import OPGDataset, AdjustContrast, NormalizeIntensity, Rotate, RandomNoise, \
     RandomCropAndResize, Resize, Blur, Zoom, ExpandDims, ToTensor
@@ -99,7 +101,7 @@ def get_threshold(
             # train_class_array = train_class.cpu().numpy()
             # train_class_array_start = np.append(train_class_array_start, train_class_array)
 
-    z_array_final = z_array_start[1:, :]
+    z_array_final = z_array_start[1:, :]  # shape: (# train images, latent dimension)
     mse_array_final = mse_array_to_average[1:]
     # train_class_array_final = train_class_array_start[1:]
     np.save('/cluster/home/emanete/dental_imaging/test_results/mse_final_array' + d1, mse_array_final)
@@ -109,18 +111,29 @@ def get_threshold(
 
     # compute mean and variance of the latent vectors of the training set
     mu = np.average(z_array_final, axis=0)  # array of size (latent dimension,)
-    var = np.var(z_array_final, axis=0)  # same
+    covar = np.cov(z_array_final, rowvar=False)  # covariance matrix of the distribution, shape (lat_dim, lat_dim)
     np.save('/cluster/home/emanete/dental_imaging/test_results/mu' + d1, mu)
-    np.save('/cluster/home/emanete/dental_imaging/test_results/var' + d1, var)
+    np.save('/cluster/home/emanete/dental_imaging/test_results/covar' + d1, covar)
 
-    return average_loss, mu, var
+    return average_loss, mu, covar
 
 
-def multivariate_gaussian(X, mu, var):
-    k = len(mu)  # k = latent dim
-    sigma = np.diag(var)  # (k, k)
-    X_ = X - mu.T  # (# images, k)
-    expo_1 = np.matmul(X_, np.linalg.pinv(sigma))
-    expo = np.matmul(expo_1, X_.transpose()).diagonal()
-    p = 1/((2*np.pi)**(k/2)*(np.linalg.det(sigma)**0.5)) * expo  # p is a number
-    return p
+def multivariate_gaussian(x, mu, covar):
+    p = multivariate_normal(mean=mu, cov=covar)
+    return p.pdf(x)
+
+
+def select_threshold(probs, test_data):
+    best_epsilon = 0
+    best_f1 = 0
+    f = 0
+    stepsize = (max(probs) - min(probs)) / 1000
+    epsilons = np.arange(min(probs), max(probs), stepsize)
+    for epsilon in np.nditer(epsilons):
+        predictions = (probs < epsilon)
+        f = f1_score(test_data, predictions, average='binary')
+        if f > best_f1:
+            best_f1 = f
+            best_epsilon = epsilon
+
+    return best_f1, best_epsilon
