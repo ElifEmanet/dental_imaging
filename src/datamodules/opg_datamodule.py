@@ -14,6 +14,7 @@ from src.dataset.dataset import OPGDataset, DataSubSet, AdjustContrast, Center, 
 class OPGDataModule(pl.LightningDataModule):
     def __init__(
             self,
+            input_pxl,
             # depending on where you run this project, change the following line:
             # data_dir: str = "data/",
             data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/all_patches",
@@ -22,6 +23,7 @@ class OPGDataModule(pl.LightningDataModule):
             test_batch_size: int = 64,
             num_workers: int = 0,
             pin_memory: bool = False,
+            IS_RESNET: bool = False
     ):
         super().__init__()
 
@@ -31,11 +33,12 @@ class OPGDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.test_batch_size = test_batch_size
         self.data_dir = data_dir
+        self.is_resnet = IS_RESNET
 
         self.original_height = 415
         self.original_width = 540
         # self.dim = 392  # 28*14
-        self.dim = 28  # 28*28
+        self.dim = input_pxl
 
         # for rotate: mode = {‘reflect’, ‘constant’, ‘grid-constant’, ‘nearest’, ‘mirror’, ‘grid-wrap’, ‘wrap’}
         self.rotate = Rotate(np.random.uniform(-6, 6), False, 'reflect')
@@ -47,31 +50,32 @@ class OPGDataModule(pl.LightningDataModule):
         self.resize = Resize(self.dim, self.dim, 'symmetric')
 
         # for resize mode: {‘constant’, ‘edge’, ‘symmetric’, ‘reflect’, ‘wrap’}
-        self.random_crop = RandomCropAndResize(np.random.randint(1, self.original_height),
-                                               np.random.randint(1, self.original_width),
+
+        self.random_crop = RandomCropAndResize(np.random.randint(int(self.dim*0.75), self.dim),
+                                               np.random.randint(int(self.dim*0.75), self.dim),
                                                self.dim, self.dim, 'symmetric')
 
         self.zoom = Zoom(np.random.uniform(0, 2))
 
         # data transformations
         self.train_transforms = transforms.Compose(
-            [NormalizeIntensity(),
+            [self.resize,
+             NormalizeIntensity(),
              AdjustContrast(1., 10., 0.),
              Blur(),
              self.rotate,
              self.random_noise,
              self.random_crop,
-             self.zoom,
-             self.resize,
-             ExpandDims(),
+             # self.zoom,
+             ExpandDims(self.is_resnet),
              ToTensor()]
         )
 
         self.test_transforms = transforms.Compose(
-            [NormalizeIntensity(),
+            [self.resize,
+             NormalizeIntensity(),
              AdjustContrast(1., 10., 0.),
-             self.resize,
-             ExpandDims(),
+             ExpandDims(self.is_resnet),
              ToTensor()]
         )
 
@@ -94,7 +98,8 @@ class OPGDataModule(pl.LightningDataModule):
 
         # Assign train/val datasets for use in dataloaders
         if stage == "fit" or stage is None:
-            data_fit = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_train_select.csv", self.data_dir)
+            data_fit = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_train_select.csv",
+                                  self.data_dir)
             self.length = len(data_fit)
             self.train_len = int(self.length*0.8)
             self.train_set, self.val_set = random_split(data_fit, [self.train_len, self.length - self.train_len])
@@ -103,7 +108,8 @@ class OPGDataModule(pl.LightningDataModule):
             self.val_trf_set = DataSubSet(self.val_set, transform=self.test_transforms)
 
         if stage == "test" or stage is None:
-            self.test_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_test_aug.csv", self.data_dir, transform=self.test_transforms)
+            self.test_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_test_aug.csv",
+                                       self.data_dir, transform=self.test_transforms)
 
     def train_dataloader(self):
         return DataLoader(self.train_trf_set, batch_size=self.batch_size, shuffle=True)

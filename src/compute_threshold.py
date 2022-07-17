@@ -18,12 +18,11 @@ def get_threshold(
         IS_VAE: bool,
         lat_dim: int,
         pxl_dim: int,
+        is_resnet: bool,
         batch_size: int = 32
 ):
     # get the training images
     data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/all_patches"
-    original_height = 415
-    original_width = 540
     dim = pxl_dim
     """""
     rotate = Rotate(np.random.uniform(-6, 6), False, 'reflect')
@@ -36,10 +35,10 @@ def get_threshold(
     resize = Resize(dim, dim, 'symmetric')
 
     train_transforms = transforms.Compose(
-        [NormalizeIntensity(),
+        [resize,
+         NormalizeIntensity(),
          AdjustContrast(1., 10., 0.),
-         resize,
-         ExpandDims(),
+         ExpandDims(is_resnet),
          ToTensor()]
     )
 
@@ -104,18 +103,22 @@ def get_threshold(
     z_array_final = z_array_start[1:, :]  # shape: (# train images, latent dimension)
     mse_array_final = mse_array_to_average[1:]
     # train_class_array_final = train_class_array_start[1:]
-    np.save('/cluster/home/emanete/dental_imaging/test_results/mse_final_array' + d1, mse_array_final)
+    # np.save('/cluster/home/emanete/dental_imaging/test_results/mse_final_array' + d1, mse_array_final)
     average_loss = np.average(mse_array_final)
-    np.save('/cluster/home/emanete/dental_imaging/test_results/lat_repr' + d1, z_array_final)
+    # np.save('/cluster/home/emanete/dental_imaging/test_results/lat_repr' + d1, z_array_final)
+    # st_dev_loss = np.std(mse_array_final)
     # np.save('/cluster/home/emanete/dental_imaging/test_results/train_class' + d1, train_class_array_final)
 
     # compute mean and variance of the latent vectors of the training set
     mu = np.average(z_array_final, axis=0)  # array of size (latent dimension,)
     covar = np.cov(z_array_final, rowvar=False)  # covariance matrix of the distribution, shape (lat_dim, lat_dim)
-    np.save('/cluster/home/emanete/dental_imaging/test_results/mu' + d1, mu)
-    np.save('/cluster/home/emanete/dental_imaging/test_results/covar' + d1, covar)
+    # np.save('/cluster/home/emanete/dental_imaging/test_results/mu' + d1, mu)
+    # np.save('/cluster/home/emanete/dental_imaging/test_results/covar' + d1, covar)
 
-    return average_loss, mu, covar
+    # threshold for mse:
+    thr = average_loss  # + st_dev_loss
+
+    return thr, mu, covar
 
 
 def multivariate_gaussian(x, mu, covar):
@@ -127,7 +130,7 @@ def select_threshold(probs, test_data):
     best_epsilon = 0
     best_score = 0
     f = 0
-    stepsize = (max(probs) - min(probs)) / 1000
+    stepsize = (max(probs) - min(probs)) / 100
     epsilons = np.arange(min(probs), max(probs), stepsize)
     for epsilon in np.nditer(epsilons):
         predictions = (probs < epsilon)

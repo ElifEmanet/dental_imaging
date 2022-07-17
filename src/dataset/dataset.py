@@ -67,7 +67,7 @@ class OPGDataset(Dataset):
 
         # binary class:
         # artefacts = [8, 10, 11]
-        artefacts = [8]
+        artefacts = [8, 11]
         if cl_new in artefacts:
             bin_class = 1
         else:
@@ -372,6 +372,11 @@ class RescalePixelDims(object):
 
 
 class ExpandDims(object):
+    def __init__(self, is_resnet):
+        assert isinstance(is_resnet, bool)
+
+        self.is_resnet = is_resnet
+
     def __call__(self, sample):
         id = sample['id']
         image = sample['image']
@@ -379,7 +384,10 @@ class ExpandDims(object):
         cl_new = sample['cl_new']
         bin_class = sample['bin_class']
 
-        image = np.expand_dims(image, axis=-1)
+        if self.is_resnet:
+            image = np.repeat(image[..., np.newaxis], 3, axis=-1)
+        else:
+            image = np.expand_dims(image, axis=-1)
 
         return {'id': id, 'image': image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
 

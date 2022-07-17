@@ -16,6 +16,7 @@ from sklearn.manifold import TSNE
 # from src.models.components.autoencoder import Encoder, Decoder
 from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
 from src.compute_threshold import get_threshold, multivariate_gaussian, select_threshold
+from src.models.components.resnet_ae import ResNetEncoder, ResNetDecoder
 from tsne_plot import tsne_plot
 
 
@@ -35,13 +36,13 @@ class OPGLitModule(LightningModule):
     def __init__(
         self,
         prob: float,
-        latent_dim: int = 30,
+        input_pxl: int,
+        is_resnet: bool,
         lr: float = 0.001,
         weight_decay: float = 0.0005,
         encoded_space_dim: int = 10,
         fc2_input_dim: int = 128,
-        stride: int = 2,
-        input_pxl: int = 28,
+        stride: int = 2
     ):
         super().__init__()
 
@@ -50,11 +51,16 @@ class OPGLitModule(LightningModule):
         self.save_hyperparameters(logger=False)
         self.encoded_space_dim = encoded_space_dim
         self.input_pxl = input_pxl
+        self.is_resnet = is_resnet
 
-        self.encoder = Encoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # LR
-        self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()  # LR
         # self.encoder = Encoder(latent_dim).float()  # EE
         # self.decoder = Decoder(latent_dim).float()  # EE
+        if is_resnet:
+            self.encoder = ResNetEncoder(encoded_space_dim).float()  # resnet
+            self.decoder = ResNetDecoder(encoded_space_dim).float()  # resnet
+        else:
+            self.encoder = Encoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()
+            self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()
 
         # Loss function for reconstruction:
         # self.reconstr_loss = nn.MSELoss()
@@ -160,7 +166,7 @@ class OPGLitModule(LightningModule):
         xs_array = xs.cpu().numpy()  # numpy.ndarray of size (# test images, 1, 28, 28)
         xs_array = xs_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
         xs_array_red = xs_array.reshape((xs_array.shape[0], xs_array.shape[1]*xs_array.shape[2]))  # (# test images, 28*28)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/original_images' + d1, xs_array_red)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/original_images' + d1, xs_array_red)
 
         # get reconstructed images
         x_hats = torch.cat([dict['reconstructed_image'] for dict in outputs])
@@ -168,7 +174,7 @@ class OPGLitModule(LightningModule):
         x_hats_array = x_hats_array.squeeze()  # numpy.ndarray of size (# test images, 28, 28)
         x_hats_array_red = x_hats_array.reshape(
             (x_hats_array.shape[0], x_hats_array.shape[1] * x_hats_array.shape[2]))  # (# test images, 28*28)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/reconstructed_images' + d1, x_hats_array_red)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/reconstructed_images' + d1, x_hats_array_red)
 
         # compute mse for individual reconstructed images: mse_array has the size (# test images,)
         mse_array = mean_squared_error(xs_array_red.transpose(), x_hats_array_red.transpose(), multioutput='raw_values')
@@ -202,7 +208,7 @@ class OPGLitModule(LightningModule):
 
         # get the threshold and the latent representations of the training images on the best model
         # thr, lat_repr = get_threshold(trained_path, False, self.encoded_space_dim)
-        average_loss, mu, var = get_threshold(trained_path, False, self.encoded_space_dim, self.input_pxl)
+        thr, mu, var = get_threshold(trained_path, False, self.encoded_space_dim, self.input_pxl, self.is_resnet)
 
         # save the latent representations of test images
         lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])  # has the dim: [# test images, lat_dim]
@@ -211,7 +217,7 @@ class OPGLitModule(LightningModule):
 
         # probabilities for test images' latent representations
         p_array = multivariate_gaussian(lat_reprs_array, mu, var)  # has size (test images,)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/test_prob' + str(self.prob) + d1, p_array)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/test_prob' + d1, p_array)
         # p_array = p.cpu().numpy()
 
         # get true classes:
@@ -220,18 +226,18 @@ class OPGLitModule(LightningModule):
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_bin' + d1, ys_array)
 
         score, ep = select_threshold(p_array, ys_array)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/ep' + d1, ep)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/ep' + d1, ep)
         self.log("score", score, on_step=False, on_epoch=True)
 
         # compare mse of each image with the threshold
-        # bool_array = mse_array > float(average_loss)
+        # bool_array = mse_array > float(thr)
         # bool_array = np.absolute(mod_z_array) > 3
         # bool_array = p_array < self.prob
         bool_array = p_array > float(ep)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
-        # np.save('/cluster/home/emanete/dental_imaging/test_results/pred' + d1, int_array)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/pred' + d1, int_array)
 
         # get accuracy and log
         accuracy = accuracy_score(ys_array, int_array)

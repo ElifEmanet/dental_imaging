@@ -23,15 +23,18 @@ model:
   lr: 0.002
   encoded_space_dim: 5
   prob: 0.8
+  input_pxl: 420
+  is_resnet: False
 
 trainer:
   min_epochs: 1
-  max_epochs: 10
+  max_epochs: 1
   gradient_clip_val: 0.5
 
 datamodule:
+  input_pxl: 420
   batch_size: 64
-  num_workers: 4
+  IS_RESNET: False
 
 logger:
   wandb:

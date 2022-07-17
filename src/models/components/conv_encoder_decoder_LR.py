@@ -1,4 +1,3 @@
-# from typing_extensions import StrictTypeGuard
 import numpy as np
 import torch
 import torch.nn as nn
