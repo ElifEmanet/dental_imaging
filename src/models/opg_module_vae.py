@@ -10,7 +10,7 @@ from pytorch_lightning import LightningModule
 from torchmetrics import MinMetric
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanSquaredError
-from sklearn.metrics import mean_squared_error, accuracy_score, confusion_matrix, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import mean_squared_error, accuracy_score, precision_score, recall_score, roc_auc_score
 from datetime import datetime
 from sklearn.manifold import TSNE
 
@@ -37,6 +37,7 @@ class OPGLitModuleVAE(LightningModule):
         self,
         prob: float,
         beta: float,
+        is_resnet: bool,
         latent_dim: int = 30,
         lr: float = 0.001,
         weight_decay: float = 0.0005,
@@ -79,6 +80,7 @@ class OPGLitModuleVAE(LightningModule):
         self.encoded_space_dim = encoded_space_dim
         self.prob = prob
         self.input_pxl = input_pxl
+        self.is_resnet = is_resnet
 
         self.now = datetime.now()
 
@@ -146,7 +148,7 @@ class OPGLitModuleVAE(LightningModule):
 
     def test_step(self, batch: Any, batch_idx: int):
         y_bin = batch['bin_class']
-        y_class = batch['cl_new']
+        y_class = batch['clf']
 
         x = batch['image'].float()
         mu, log_var, x_hat = self.forward(x.float())
@@ -161,14 +163,14 @@ class OPGLitModuleVAE(LightningModule):
 
         return {"loss": loss, "original_image": x,
                 "reconstructed_image": x_hat, "y_bin": y_bin,
-                "cl_new": y_class, "latent_repr": lat_repr}
+                "clf": y_class, "latent_repr": lat_repr}
 
     def test_epoch_end(self, outputs: List[Any]):
         # get current time to name the file
         d1 = self.now.strftime("%d-%m-%Y_%H:%M:%S")
 
         # log parameters:
-        self.log("threshold probability", self.prob, on_step=False, on_epoch=True)
+        # self.log("threshold probability", self.prob, on_step=False, on_epoch=True)
         self.log("latent dimension", self.encoded_space_dim, on_step=False, on_epoch=True)
 
         # get original images
@@ -191,6 +193,22 @@ class OPGLitModuleVAE(LightningModule):
         mse_array = mean_squared_error(xs_array_red.transpose(), x_hats_array_red.transpose(), multioutput='raw_values')
         np.save('/cluster/home/emanete/dental_imaging/test_results/vae_mse' + d1, mse_array)
 
+        """""
+        # compute MAD for the test set:
+        median = np.median(mse_array)
+        median_array = np.full(mse_array.shape, float(median))
+        diff_array = median_array - mse_array
+        absolute_diff = np.absolute(diff_array)
+        mad = np.median(absolute_diff)
+
+        # for each test image compute the modified z-score:
+        mod_z_array = 0.6745 * (mse_array - median_array) / mad
+        np.save('/cluster/home/emanete/dental_imaging/test_results/mod_z_score' + d1, mod_z_array)
+
+        # get the threshold from the training images:
+        # threshold = get_threshold(self.trained_path)
+        """""
+
         # get the best model path:
         with open(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'r') as fp:
             num_lines = len(fp.readlines())  # the file score ends with an empty line, hence subtract 1 and 2 resp.
@@ -203,12 +221,12 @@ class OPGLitModuleVAE(LightningModule):
         # get training images' average mse loss on the best model
         # thr, train_lat_repr = get_threshold(trained_path, True, self.encoded_space_dim)
         # thr = get_threshold(trained_path, True, self.encoded_space_dim)
-        average_loss, mu, var = get_threshold(trained_path, True, self.encoded_space_dim, self.input_pxl)
+        average_loss, mu, var = get_threshold(trained_path, True, self.encoded_space_dim, self.input_pxl, self.is_resnet)
 
         # save the latent representations of test images
         lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])
         lat_reprs_array = lat_reprs.cpu().numpy()
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_lat_repr' + d1, lat_reprs_array)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/test_lat_repr' + d1, lat_reprs_array)
 
         # probabilities for test images' latent representations
         p_array = multivariate_gaussian(lat_reprs_array, mu, var)  # has size (test images,)
@@ -219,12 +237,13 @@ class OPGLitModuleVAE(LightningModule):
         ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_bin' + d1, ys_array)
 
-        fscore, ep = select_threshold(p_array, ys_array)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/ep' + d1, ep)
-        self.log("f1_score", fscore, on_step=False, on_epoch=True)
+        score, ep = select_threshold(p_array, ys_array)
+        # np.save('/cluster/home/emanete/dental_imaging/test_results/ep' + d1, ep)
+        self.log("score", score, on_step=False, on_epoch=True)
 
         # compare mse of each image with the threshold
         # bool_array = mse_array > float(average_loss)
+        # bool_array = np.absolute(mod_z_array) > 3
         bool_array = p_array > float(ep)
 
         # convert boolean array to int array = predictions
@@ -257,10 +276,10 @@ class OPGLitModuleVAE(LightningModule):
         self.log("beta", self.beta, on_step=False, on_epoch=True)
 
         # get classifications for plotting
-        y_class = torch.cat([dict['cl_new'] for dict in outputs])
+        y_class = torch.cat([dict['clf'] for dict in outputs])
         y_class_array = y_class.cpu().numpy()
 
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_true_class' + d1, y_class_array)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/test_true_class' + d1, y_class_array)
 
         """""
         # now plot the latent representations:

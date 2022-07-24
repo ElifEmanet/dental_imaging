@@ -24,18 +24,40 @@ class OPGDataset(Dataset):
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
+
+        """"
+        ## 2022-07-08_dental_annotation_final.csv
+
+        ### classification
+        0: normal
+        10: normal + artefact
+        8: anomal
+        11: anomal + artefact
+        7: anomal?
+        
+        ### view_classes_3
+        
+        0 … normal
+        1 … spine
+        2 … jaw
+        3 … spine & jaw
+        """
+
         self.frame = pd.read_csv(csv_file)
         self.img_path = img_path
         self.transform = transform
 
-        # 2. column: the image paths/names
-        self.image_arr = np.asarray(self.frame.iloc[:, 0])
+        # 2. column: the image name
+        self.image_arr = np.asarray(self.frame.iloc[:, 1])
 
-        # 12. column: machine (0 or 1)
-        self.machine_arr = np.asarray(self.frame.iloc[:, 10])
+        # 3. column: machine (0 or 1)
+        self.machine_arr = np.asarray(self.frame.iloc[:, 2])
 
-        # 13. column: classification_new (integer)
-        self.cl_new_arr = np.asarray(self.frame.iloc[:, 11])
+        # 7. column: classification
+        self.cl_arr = np.asarray(self.frame.iloc[:, 6])
+
+        # 8. column: view_classes_3
+        self.view_cl = np.asarray(self.frame.iloc[:, 7])
 
     def __len__(self):
         return len(self.frame)
@@ -62,13 +84,15 @@ class OPGDataset(Dataset):
         # machine:
         machine = self.machine_arr[index]
 
-        # cl_new:
-        cl_new = self.cl_new_arr[index]
+        # classification:
+        clf = self.cl_arr[index]
+
+        # view class:
+        view_cl = self.view_cl[index]
 
         # binary class:
-        # artefacts = [8, 10, 11]
         artefacts = [8, 11]
-        if cl_new in artefacts:
+        if clf in artefacts:
             bin_class = 1
         else:
             bin_class = 0
@@ -77,7 +101,8 @@ class OPGDataset(Dataset):
         sample = {'id': self.image_arr[index],
                   'image': image,
                   'machine': machine,
-                  'cl_new': cl_new,
+                  'clf': clf,
+                  'view_cl': view_cl,
                   'bin_class': bin_class}
 
         if self.transform:
@@ -103,7 +128,8 @@ class DataSubSet(Dataset):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         if self.transform:
@@ -111,10 +137,12 @@ class DataSubSet(Dataset):
             id = augmented['id']
             image = augmented['image']
             machine = augmented['machine']
-            cl_new = augmented['cl_new']
+            clf = augmented['clf']
+            view_cl = augmented['view_cl']
             bin_class = augmented['bin_class']
 
-        return {'id': id, 'image': image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': image, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class AdjustContrast(object):
@@ -131,7 +159,8 @@ class AdjustContrast(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         mean = image.mean()
@@ -140,7 +169,8 @@ class AdjustContrast(object):
         image = self.s * image / max(contrast, self.epsilon)
         # image = np.expand_dims(image, axis=-1)
 
-        return {'id': id, 'image': image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': image, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class NormalizeIntensity(object):
@@ -148,29 +178,16 @@ class NormalizeIntensity(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         max = image.max()
         image = image/max
         # image = np.expand_dims(image, axis=-1)
 
-        return {'id': id, 'image': image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
-
-
-class Center(object):
-    def __call__(self, sample):
-        id = sample['id']
-        image = sample['image']
-        machine = sample['machine']
-        cl_new = sample['cl_new']
-        bin_class = sample['bin_class']
-
-        mean = image.mean()
-        image = image - mean
-        # image = np.expand_dims(image, axis=-1)
-
-        return {'id': id, 'image': image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': image, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class Rotate(object):
@@ -188,13 +205,15 @@ class Rotate(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         img_rotated = ndimage.rotate(image, self.angle, reshape=self.reshape, mode=self.mode)
         # img_rotated = np.expand_dims(img_rotated, axis=-1)
 
-        return {'id': id, 'image': img_rotated, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': img_rotated, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class RandomNoise(object):
@@ -209,13 +228,15 @@ class RandomNoise(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         noise_img = random_noise(image, mode=self.mode)
         # noise_img = np.expand_dims(noise_img, axis=-1)
 
-        return {'id': id, 'image': noise_img, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': noise_img, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class RandomCropAndResize(object):
@@ -239,7 +260,8 @@ class RandomCropAndResize(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         max_x = image.shape[1] - self.crop_width
@@ -252,7 +274,8 @@ class RandomCropAndResize(object):
         resized_image = resize(crop, (self.width, self.height), mode=self.mode)
         # resized_image = np.expand_dims(resized_image, axis=-1)
 
-        return {'id': id, 'image': resized_image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': resized_image, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class Sharpen(object):
@@ -260,7 +283,8 @@ class Sharpen(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         # kernel to sharpen the image
@@ -272,7 +296,8 @@ class Sharpen(object):
         image_sharp = cv2.filter2D(src=image, ddepth=-1, kernel=kernel)
         image_sharp = np.expand_dims(image_sharp, axis=-1)
 
-        return {'id': id, 'image': image_sharp, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': image_sharp, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class Blur(object):
@@ -280,13 +305,15 @@ class Blur(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         blurred_image = cv2.blur(image, (7, 7))
         # blurred_image = np.expand_dims(blurred_image, axis=-1)
 
-        return {'id': id, 'image': blurred_image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': blurred_image, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class Resize(object):
@@ -302,13 +329,15 @@ class Resize(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         resized_image = resize(image, self.size, mode=self.mode)
         # resized_image = np.expand_dims(resized_image, axis=-1)
 
-        return {'id': id, 'image': resized_image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': resized_image, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class Zoom(object):
@@ -321,11 +350,13 @@ class Zoom(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         if self.zoom_factor == 0:
-            return {'id': id, 'image': image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+            return {'id': id, 'image': image, 'machine': machine, 'clf': clf,
+                    'view_cl': view_cl, 'bin_class': bin_class}
 
         else:
             y_size = image.shape[0]
@@ -341,34 +372,8 @@ class Zoom(object):
             img_cropped = image[y1:y2, x1:x2]
             zoomed_image = cv2.resize(img_cropped, None, fx=self.zoom_factor, fy=self.zoom_factor)
 
-            return {'id': id, 'image': zoomed_image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
-
-
-class RescalePixelDims(object):
-    def __init__(self, machine_0_dim, machine_1_dim):
-        assert isinstance(machine_0_dim, float)
-        assert isinstance(machine_1_dim, float)
-
-        self.middle = (machine_0_dim + machine_1_dim) / 2
-        self.rescale_factor_0 = self.middle / machine_0_dim
-        self.rescale_factor_1 = self.middle / machine_1_dim
-
-    def __call__(self, sample):
-        id = sample['id']
-        image = sample['image']
-        machine = sample['machine']
-        cl_new = sample['cl_new']
-        bin_class = sample['bin_class']
-
-        if machine == 0:
-            rescaled_image = cv2.resize(image, None, fx=self.rescale_factor_0, fy=self.rescale_factor_0)
-
-        else:
-            rescaled_image = cv2.resize(image, None, fx=self.rescale_factor_1, fy=self.rescale_factor_1)
-
-        # resized_image = np.expand_dims(resized_image, axis=-1)
-
-        return {'id': id, 'image': rescaled_image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+            return {'id': id, 'image': zoomed_image, 'machine': machine, 'clf': clf,
+                    'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class ExpandDims(object):
@@ -381,7 +386,8 @@ class ExpandDims(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         if self.is_resnet:
@@ -389,7 +395,8 @@ class ExpandDims(object):
         else:
             image = np.expand_dims(image, axis=-1)
 
-        return {'id': id, 'image': image, 'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': image, 'machine': machine, 'clf': clf,
+                'view_cl': view_cl, 'bin_class': bin_class}
 
 
 class ToTensor(object):
@@ -399,7 +406,8 @@ class ToTensor(object):
         id = sample['id']
         image = sample['image']
         machine = sample['machine']
-        cl_new = sample['cl_new']
+        clf = sample['clf']
+        view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
         # swap color axis because
@@ -407,5 +415,5 @@ class ToTensor(object):
         # torch image: C x H x W
         image = image.transpose((2, 0, 1))
 
-        return {'id': id, 'image': torch.from_numpy(image).type(torch.DoubleTensor),
-                'machine': machine, 'cl_new': cl_new, 'bin_class': bin_class}
+        return {'id': id, 'image': torch.from_numpy(image).type(torch.DoubleTensor), 'machine': machine,
+                'clf': clf, 'view_cl': view_cl, 'bin_class': bin_class}

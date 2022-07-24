@@ -96,6 +96,7 @@ def train(config: DictConfig) -> Optional[float]:
 
     if not config.trainer.get("fast_dev_run") and config.get("train"):
         log.info("saving the best model and its score")
+        # with open("../checkpoints_and_scores/scores", 'a') as f:
         with open("/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'a') as f:
             f.write(f"{trainer.checkpoint_callback.best_model_path}")
             f.write('\n')

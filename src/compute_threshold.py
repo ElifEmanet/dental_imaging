@@ -9,8 +9,7 @@ from torchvision import transforms
 
 from scipy.stats import multivariate_normal
 
-from src.dataset.dataset import OPGDataset, AdjustContrast, NormalizeIntensity, Rotate, RandomNoise, \
-    RandomCropAndResize, Resize, Blur, Zoom, ExpandDims, ToTensor
+from src.dataset.dataset import OPGDataset, AdjustContrast, NormalizeIntensity, Resize, ExpandDims, ToTensor
 
 
 def get_threshold(
@@ -42,7 +41,8 @@ def get_threshold(
          ToTensor()]
     )
 
-    train_dataset = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_train_select.csv",
+    # train_dataset = OPGDataset("../data/all_images_train_select.csv",
+    train_dataset = OPGDataset("/cluster/home/emanete/dental_imaging/data/new_all_images_train_clf.csv",
                                data_dir,
                                transform=train_transforms)
 
@@ -112,17 +112,17 @@ def get_threshold(
     # compute mean and variance of the latent vectors of the training set
     mu = np.average(z_array_final, axis=0)  # array of size (latent dimension,)
     covar = np.cov(z_array_final, rowvar=False)  # covariance matrix of the distribution, shape (lat_dim, lat_dim)
-    # np.save('/cluster/home/emanete/dental_imaging/test_results/mu' + d1, mu)
-    # np.save('/cluster/home/emanete/dental_imaging/test_results/covar' + d1, covar)
+    np.save('/cluster/home/emanete/dental_imaging/test_results/mu' + d1, mu)
+    np.save('/cluster/home/emanete/dental_imaging/test_results/covar' + d1, covar)
 
     # threshold for mse:
-    thr = average_loss  # + st_dev_loss
+    thr = average_loss
 
     return thr, mu, covar
 
 
 def multivariate_gaussian(x, mu, covar):
-    p = multivariate_normal(mean=mu, cov=covar)
+    p = multivariate_normal(mean=mu, cov=covar, allow_singular=True)
     return p.pdf(x)
 
 

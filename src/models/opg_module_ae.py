@@ -84,8 +84,6 @@ class OPGLitModule(LightningModule):
 
         self.prob = prob
 
-        # self.trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 1).strip()
-        # self.threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 2).strip()
         self.name = "ae 1 ep, lat = 2, thr converted"
 
         wandb.init(project="dental_imaging",
@@ -138,7 +136,7 @@ class OPGLitModule(LightningModule):
 
     def test_step(self, batch: Any, batch_idx: int):
         y_bin = batch['bin_class']
-        y_class = batch['cl_new']
+        y_class = batch['clf']
 
         x, x_hat = self.common_step(batch)
         latent_repr = self.encoder(batch['image'].float())
@@ -151,14 +149,14 @@ class OPGLitModule(LightningModule):
         # return {"loss": loss, "accuracy": accuracy}
         return {"loss": loss, "original_image": x,
                 "reconstructed_image": x_hat, "y_bin": y_bin,
-                "cl_new": y_class, "latent_repr": latent_repr}
+                "clf": y_class, "latent_repr": latent_repr}
 
     def test_epoch_end(self, outputs):
         # get current time to name the file
         d1 = self.now.strftime("%d-%m-%Y_%H:%M:%S")
 
         # log parameters:
-        self.log("threshold probability", self.prob, on_step=False, on_epoch=True)
+        # self.log("threshold probability", self.prob, on_step=False, on_epoch=True)
         self.log("latent dimension", self.encoded_space_dim, on_step=False, on_epoch=True)
 
         # get original images
@@ -195,8 +193,10 @@ class OPGLitModule(LightningModule):
         # threshold = get_threshold(self.trained_path)
         """""
         # get the best model path and the best score:
+        # with open(r"../../checkpoints_and_scores/scores", 'r') as fp:
         with open(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores", 'r') as fp:
             num_lines = len(fp.readlines())  # the file score ends with an empty line, hence subtract 1 and 2 resp.
+        # trained_path = linecache.getline(r"../../checkpoints_and_scores/scores",
         trained_path = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores",
                                          num_lines - 2).strip()
         # threshold = linecache.getline(r"/cluster/home/emanete/dental_imaging/checkpoints_and_scores/scores",
@@ -266,7 +266,7 @@ class OPGLitModule(LightningModule):
         self.log("test/recall", recall, on_step=False, on_epoch=True)
 
         # get classifications for plotting
-        y_class = torch.cat([dict['cl_new'] for dict in outputs])
+        y_class = torch.cat([dict['clf'] for dict in outputs])
         y_class_array = y_class.cpu().numpy()
 
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_true_class' + d1, y_class_array)

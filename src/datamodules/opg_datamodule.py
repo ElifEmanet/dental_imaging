@@ -1,13 +1,11 @@
 import pytorch_lightning as pl
 import numpy as np
 
-import torch
-
 from torch.utils.data import random_split, DataLoader, Dataset
 from typing import Optional, Tuple
 from torchvision import transforms
 
-from src.dataset.dataset import OPGDataset, DataSubSet, AdjustContrast, Center, NormalizeIntensity, Rotate, RandomNoise, \
+from src.dataset.dataset import OPGDataset, DataSubSet, AdjustContrast, NormalizeIntensity, Rotate, RandomNoise, \
     RandomCropAndResize, Resize, Blur, Zoom, ExpandDims, ToTensor
 
 
@@ -48,8 +46,6 @@ class OPGDataModule(pl.LightningDataModule):
 
         # for resize mode: {‘constant’, ‘edge’, ‘symmetric’, ‘reflect’, ‘wrap’}
         self.resize = Resize(self.dim, self.dim, 'symmetric')
-
-        # for resize mode: {‘constant’, ‘edge’, ‘symmetric’, ‘reflect’, ‘wrap’}
 
         self.random_crop = RandomCropAndResize(np.random.randint(int(self.dim*0.75), self.dim),
                                                np.random.randint(int(self.dim*0.75), self.dim),
@@ -98,24 +94,20 @@ class OPGDataModule(pl.LightningDataModule):
 
         # Assign train/val datasets for use in dataloaders
         if stage == "fit" or stage is None:
-            data_fit = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_train_select.csv",
-                                  self.data_dir)
-            self.length = len(data_fit)
-            self.train_len = int(self.length*0.8)
-            self.train_set, self.val_set = random_split(data_fit, [self.train_len, self.length - self.train_len])
-
-            self.train_trf_set = DataSubSet(self.train_set, transform=self.train_transforms)
-            self.val_trf_set = DataSubSet(self.val_set, transform=self.test_transforms)
+            self.train_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/new_all_images_train.csv",
+                                        self.data_dir, transform=self.train_transforms)
+            self.val_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/new_all_images_val.csv",
+                                      self.data_dir, transform=self.test_transforms)
 
         if stage == "test" or stage is None:
-            self.test_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/all_images_test_aug.csv",
+            self.test_set = OPGDataset("/cluster/home/emanete/dental_imaging/data/new_all_images_test.csv",
                                        self.data_dir, transform=self.test_transforms)
 
     def train_dataloader(self):
-        return DataLoader(self.train_trf_set, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train_set, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_trf_set, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.val_set, batch_size=self.batch_size, shuffle=True)
 
     def test_dataloader(self):
         return DataLoader(self.test_set, batch_size=self.test_batch_size, shuffle=True)
