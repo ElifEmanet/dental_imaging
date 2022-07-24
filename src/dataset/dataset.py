@@ -61,7 +61,6 @@ class OPGDataset(Dataset):
 
     def __len__(self):
         return len(self.frame)
-        # return len(self.frame.index)
 
     def __getitem__(self, index):
         if torch.is_tensor(index):
@@ -71,15 +70,9 @@ class OPGDataset(Dataset):
 
         image_path = os.path.join(self.img_path, single_image_name)
 
-        # read dcm into an ndarray (! for tensors: switch axes??):
+        # read dcm into an ndarray:
         image_dcm = dicom.dcmread(image_path)
         image = image_dcm.pixel_array.astype(np.uint)
-
-        """
-        # ToTensor method requires nparray of int [0, 255]
-        # to rescale: 
-        image = (np.maximum(image, 0)/ image_dcm.max())*255
-        """
 
         # machine:
         machine = self.machine_arr[index]
@@ -167,7 +160,6 @@ class AdjustContrast(object):
         image = image - mean
         contrast = np.sqrt(self.lmda + np.mean(image ** 2))
         image = self.s * image / max(contrast, self.epsilon)
-        # image = np.expand_dims(image, axis=-1)
 
         return {'id': id, 'image': image, 'machine': machine, 'clf': clf,
                 'view_cl': view_cl, 'bin_class': bin_class}
@@ -184,7 +176,6 @@ class NormalizeIntensity(object):
 
         max = image.max()
         image = image/max
-        # image = np.expand_dims(image, axis=-1)
 
         return {'id': id, 'image': image, 'machine': machine, 'clf': clf,
                 'view_cl': view_cl, 'bin_class': bin_class}
@@ -197,7 +188,8 @@ class Rotate(object):
         assert isinstance(mode, str)
 
         self.angle = angle
-        # If you want the output shape to be adapted s.t. the input array is contained completely in the output: set reshape to True (default)
+        # If you want the output shape to be adapted s.t. the input array is contained completely in the output:
+        # set reshape to True (default)
         self.reshape = reshape
         self.mode = mode
 
@@ -210,7 +202,6 @@ class Rotate(object):
         bin_class = sample['bin_class']
 
         img_rotated = ndimage.rotate(image, self.angle, reshape=self.reshape, mode=self.mode)
-        # img_rotated = np.expand_dims(img_rotated, axis=-1)
 
         return {'id': id, 'image': img_rotated, 'machine': machine, 'clf': clf,
                 'view_cl': view_cl, 'bin_class': bin_class}
@@ -233,7 +224,6 @@ class RandomNoise(object):
         bin_class = sample['bin_class']
 
         noise_img = random_noise(image, mode=self.mode)
-        # noise_img = np.expand_dims(noise_img, axis=-1)
 
         return {'id': id, 'image': noise_img, 'machine': machine, 'clf': clf,
                 'view_cl': view_cl, 'bin_class': bin_class}
@@ -272,7 +262,6 @@ class RandomCropAndResize(object):
 
         crop = image[y: y + self.crop_height, x: x + self.crop_width]
         resized_image = resize(crop, (self.width, self.height), mode=self.mode)
-        # resized_image = np.expand_dims(resized_image, axis=-1)
 
         return {'id': id, 'image': resized_image, 'machine': machine, 'clf': clf,
                 'view_cl': view_cl, 'bin_class': bin_class}
@@ -310,7 +299,6 @@ class Blur(object):
         bin_class = sample['bin_class']
 
         blurred_image = cv2.blur(image, (7, 7))
-        # blurred_image = np.expand_dims(blurred_image, axis=-1)
 
         return {'id': id, 'image': blurred_image, 'machine': machine, 'clf': clf,
                 'view_cl': view_cl, 'bin_class': bin_class}
@@ -334,7 +322,6 @@ class Resize(object):
         bin_class = sample['bin_class']
 
         resized_image = resize(image, self.size, mode=self.mode)
-        # resized_image = np.expand_dims(resized_image, axis=-1)
 
         return {'id': id, 'image': resized_image, 'machine': machine, 'clf': clf,
                 'view_cl': view_cl, 'bin_class': bin_class}

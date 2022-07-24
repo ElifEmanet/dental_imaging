@@ -51,7 +51,7 @@ class Encoder(nn.Module):
         log_var = self.hidden2log_var(latent)
         return mu, log_var
 
-# decoder for 28 x 28 images
+
 class Decoder(nn.Module):
 
     def __init__(

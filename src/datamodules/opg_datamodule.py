@@ -1,11 +1,11 @@
 import pytorch_lightning as pl
 import numpy as np
 
-from torch.utils.data import random_split, DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset
 from typing import Optional, Tuple
 from torchvision import transforms
 
-from src.dataset.dataset import OPGDataset, DataSubSet, AdjustContrast, NormalizeIntensity, Rotate, RandomNoise, \
+from src.dataset.dataset import OPGDataset, AdjustContrast, NormalizeIntensity, Rotate, RandomNoise, \
     RandomCropAndResize, Resize, Blur, Zoom, ExpandDims, ToTensor
 
 
@@ -33,9 +33,6 @@ class OPGDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.is_resnet = IS_RESNET
 
-        self.original_height = 415
-        self.original_width = 540
-        # self.dim = 392  # 28*14
         self.dim = input_pxl
 
         # for rotate: mode = {‘reflect’, ‘constant’, ‘grid-constant’, ‘nearest’, ‘mirror’, ‘grid-wrap’, ‘wrap’}
@@ -62,7 +59,6 @@ class OPGDataModule(pl.LightningDataModule):
              self.rotate,
              self.random_noise,
              self.random_crop,
-             # self.zoom,
              ExpandDims(self.is_resnet),
              ToTensor()]
         )

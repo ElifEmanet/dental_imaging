@@ -1,11 +1,7 @@
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 
 
-# encoder for 28 x 28 images
 class Encoder(nn.Module):
 
     def __init__(
@@ -30,6 +26,7 @@ class Encoder(nn.Module):
 
         ### Flatten layer
         self.flatten = nn.Flatten(start_dim=1)
+
         ### Linear section
         input_dim = int(((input_pxl / stride) / stride) / stride)
         self.encoder_lin = nn.Sequential(
@@ -45,7 +42,6 @@ class Encoder(nn.Module):
         return x
 
 
-# decoder for 28 x 28 images
 class Decoder(nn.Module):
 
     def __init__(

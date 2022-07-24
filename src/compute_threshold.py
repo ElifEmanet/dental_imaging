@@ -23,14 +23,7 @@ def get_threshold(
     # get the training images
     data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/all_patches"
     dim = pxl_dim
-    """""
-    rotate = Rotate(np.random.uniform(-6, 6), False, 'reflect')
-    random_noise = RandomNoise('gaussian', 0.1)
-    random_crop = RandomCropAndResize(np.random.randint(1, original_height),
-                                      np.random.randint(1, original_width),
-                                      dim, dim, 'symmetric')
-    zoom = Zoom(np.random.uniform(0, 2))
-    """""
+
     resize = Resize(dim, dim, 'symmetric')
 
     train_transforms = transforms.Compose(
@@ -41,7 +34,6 @@ def get_threshold(
          ToTensor()]
     )
 
-    # train_dataset = OPGDataset("../data/all_images_train_select.csv",
     train_dataset = OPGDataset("/cluster/home/emanete/dental_imaging/data/new_all_images_train_clf.csv",
                                data_dir,
                                transform=train_transforms)
@@ -61,11 +53,10 @@ def get_threshold(
     # compute the average loss for the training images with the best model
     mse_array_to_average = np.zeros(1)
     z_array_start = np.zeros((1, lat_dim))
-    # train_class_array_start = np.zeros(1)
 
     with torch.no_grad():
         for batch_idx, sample in enumerate(train_dataloader):
-            images = sample['image']  # has shape [training_batch_size  1 28 28]
+            images = sample['image']  # has shape [training_batch_size  1 pxl_dim pxl_dim]
             if IS_VAE:
                 mu, log_var = loaded_model.encoder(images.float())
                 z = loaded_model.reparametrize(mu, log_var)
@@ -75,14 +66,14 @@ def get_threshold(
                 reconstructed_images = loaded_model(images)
 
             z_array = z.cpu().numpy()
-            images_array = images.cpu().numpy()  # numpy.ndarray of size (training_batch_size, 1, 28, 28)
+            images_array = images.cpu().numpy()  # numpy.ndarray of size (training_batch_size, 1, pxl_dim, pxl_dim)
             rec_images_array = reconstructed_images.cpu().numpy()  # same
 
-            images_array = images_array.squeeze()  # numpy.ndarray of size (training_batch_size, 28, 28)
+            images_array = images_array.squeeze()  # numpy.ndarray of size (training_batch_size, pxl_dim, pxl_dim)
             rec_images_array = rec_images_array.squeeze()  # same
 
             im_array_red = images_array.reshape(
-                (images_array.shape[0], images_array.shape[1] * images_array.shape[2]))  # (training_batch_size, 28*28)
+                (images_array.shape[0], images_array.shape[1] * images_array.shape[2]))  # (training_batch_size, pxl_dim*pxl_dim)
             rec_im_array_red = rec_images_array.reshape(
                 (rec_images_array.shape[0], rec_images_array.shape[1] * rec_images_array.shape[2]))  # same
 
@@ -93,23 +84,15 @@ def get_threshold(
             mse_array_to_average = np.append(mse_array_to_average, mse_array)
 
             d1 = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-            # np.save('/cluster/home/emanete/dental_imaging/test_results/mse_training' + d1, mse_array_to_average)
-            # np.save('/cluster/home/emanete/dental_imaging/test_results/latent_repr' + d1, z_array)
-
-            # train_class = sample['cl_new']
-            # train_class_array = train_class.cpu().numpy()
-            # train_class_array_start = np.append(train_class_array_start, train_class_array)
 
     z_array_final = z_array_start[1:, :]  # shape: (# train images, latent dimension)
     mse_array_final = mse_array_to_average[1:]
-    # train_class_array_final = train_class_array_start[1:]
-    # np.save('/cluster/home/emanete/dental_imaging/test_results/mse_final_array' + d1, mse_array_final)
-    average_loss = np.average(mse_array_final)
-    # np.save('/cluster/home/emanete/dental_imaging/test_results/lat_repr' + d1, z_array_final)
-    # st_dev_loss = np.std(mse_array_final)
-    # np.save('/cluster/home/emanete/dental_imaging/test_results/train_class' + d1, train_class_array_final)
 
-    # compute mean and variance of the latent vectors of the training set
+    average_loss = np.average(mse_array_final)
+
+    # np.save('/cluster/home/emanete/dental_imaging/test_results/lat_repr' + d1, z_array_final)
+
+    # compute mean and covariance of the latent vectors of the training set
     mu = np.average(z_array_final, axis=0)  # array of size (latent dimension,)
     covar = np.cov(z_array_final, rowvar=False)  # covariance matrix of the distribution, shape (lat_dim, lat_dim)
     np.save('/cluster/home/emanete/dental_imaging/test_results/mu' + d1, mu)
