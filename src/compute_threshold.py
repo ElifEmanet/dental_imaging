@@ -2,6 +2,7 @@ import torch
 import numpy as np
 
 from sklearn.metrics import mean_squared_error, f1_score, accuracy_score
+from torchmetrics import CohenKappa
 from datetime import datetime
 
 from torch.utils.data import DataLoader
@@ -110,6 +111,7 @@ def multivariate_gaussian(x, mu, covar):
 
 
 def select_threshold(probs, test_data):
+    cohenkappa = CohenKappa(num_classes=2)
     best_epsilon = 0
     best_score = 0
     f = 0
@@ -117,8 +119,9 @@ def select_threshold(probs, test_data):
     epsilons = np.arange(min(probs), max(probs), stepsize)
     for epsilon in np.nditer(epsilons):
         predictions = (probs < epsilon)
-        f = f1_score(test_data, predictions, average='binary')
+        # f = f1_score(test_data, predictions, average='binary')
         # f = accuracy_score(test_data, predictions)
+        f = cohenkappa(torch.from_numpy(test_data), torch.from_numpy(predictions))
         if f > best_score:
             best_score = f
             best_epsilon = epsilon

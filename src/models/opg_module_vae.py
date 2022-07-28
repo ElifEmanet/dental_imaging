@@ -72,7 +72,7 @@ class OPGLitModuleVAE(LightningModule):
 
         self.now = datetime.now()
 
-        self.name = "vae, 1 ep, lat = 5, tsne"
+        self.name = "vae, 1 ep, lat = 5"
 
         wandb.init(project="dental_imaging",
                    name=self.name,
@@ -133,6 +133,7 @@ class OPGLitModuleVAE(LightningModule):
     def test_step(self, batch: Any, batch_idx: int):
         y_bin = batch['bin_class']
         y_class = batch['clf']
+        y_view_class = batch['view_cl']
 
         x = batch['image'].float()
         mu, log_var, x_hat = self.forward(x.float())
@@ -147,7 +148,7 @@ class OPGLitModuleVAE(LightningModule):
 
         return {"loss": loss, "original_image": x,
                 "reconstructed_image": x_hat, "y_bin": y_bin,
-                "clf": y_class, "latent_repr": lat_repr}
+                "clf": y_class, "latent_repr": lat_repr, "y_view_class": y_view_class}
 
     def test_epoch_end(self, outputs: List[Any]):
         # get current time to name the file
@@ -254,6 +255,11 @@ class OPGLitModuleVAE(LightningModule):
         y_class_array = y_class.cpu().numpy()
 
         np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_true_class' + d1, y_class_array)
+
+        y_view_class = torch.cat([dict['y_view_class'] for dict in outputs])
+        y_view_class_array = y_view_class.cpu().numpy()
+
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_true_view_class' + d1, y_view_class_array)
 
     def on_epoch_end(self):
         # reset metrics at the end of every epoch

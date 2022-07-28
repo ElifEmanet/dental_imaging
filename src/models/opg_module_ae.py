@@ -122,6 +122,7 @@ class OPGLitModule(LightningModule):
     def test_step(self, batch: Any, batch_idx: int):
         y_bin = batch['bin_class']
         y_class = batch['clf']
+        y_view_class = batch['view_cl']
 
         x, x_hat = self.common_step(batch)
         latent_repr = self.encoder(batch['image'].float())
@@ -132,7 +133,7 @@ class OPGLitModule(LightningModule):
 
         return {"loss": loss, "original_image": x,
                 "reconstructed_image": x_hat, "y_bin": y_bin,
-                "clf": y_class, "latent_repr": latent_repr}
+                "clf": y_class, "latent_repr": latent_repr, "y_view_class": y_view_class}
 
     def test_epoch_end(self, outputs):
         # get current time to name the file
@@ -232,11 +233,19 @@ class OPGLitModule(LightningModule):
         recall = recall_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')
         self.log("test/recall", recall, on_step=False, on_epoch=True)
 
+        # Cohen's kappa
+        self.log("test/Cohen's kappa", score, on_step=False, on_epoch=True)
+
         # get classifications for plotting
         y_class = torch.cat([dict['clf'] for dict in outputs])
         y_class_array = y_class.cpu().numpy()
 
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_true_class' + d1, y_class_array)
+
+        y_view_class = torch.cat([dict['y_view_class'] for dict in outputs])
+        y_view_class_array = y_view_class.cpu().numpy()
+
+        np.save('/cluster/home/emanete/dental_imaging/test_results/test_true_view_class' + d1, y_view_class_array)
 
     def on_epoch_end(self):
         # reset metrics at the end of every epoch
