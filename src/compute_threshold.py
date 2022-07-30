@@ -115,7 +115,7 @@ def select_threshold(probs, test_data):
     best_epsilon = 0
     best_score = 0
     f = 0
-    stepsize = (max(probs) - min(probs)) / 100
+    stepsize = (max(probs) - min(probs)) / 1000
     epsilons = np.arange(min(probs), max(probs), stepsize)
     for epsilon in np.nditer(epsilons):
         predictions = (probs < epsilon)

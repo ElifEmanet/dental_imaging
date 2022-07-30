@@ -4,7 +4,7 @@
 
 defaults:
   - override /datamodule: opg.yaml
-  - override /model: opg_ae.yaml  # opg_ae.yaml, opg_vae.yaml
+  - override /model: opg_vae.yaml  # opg_ae.yaml, opg_vae.yaml
   - override /callbacks: default.yaml
   - override /logger: wandb.yaml
   - override /trainer: default.yaml
@@ -19,7 +19,7 @@ data_dir: "/cluster/project/jbuhmann/dental_imaging/data/all_patches"
 seed: 12345
 
 model:
-  # beta: 0.3  # uncomment for vae
+  beta: 1.3  # uncomment for vae
   lr: 0.002
   encoded_space_dim: 30
   prob: 0.8

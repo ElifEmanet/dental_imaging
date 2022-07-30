@@ -208,7 +208,7 @@ class OPGLitModule(LightningModule):
         # bool_array = np.absolute(mod_z_array) > 3
 
         # using latent representations of test images, compared to the multivariate distribution of training images:
-        bool_array = p_array > float(ep)
+        bool_array = p_array < float(ep)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1

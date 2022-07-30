@@ -119,7 +119,7 @@ class OPGLitModuleVAE(LightningModule):
 
         kl_loss = (-0.5 * (1 + log_var - mu ** 2 - torch.exp(log_var)).sum(dim=1)).mean(dim=0)
         recon_loss = self.val_loss(x, x_hat)
-        loss = recon_loss * self.beta + kl_loss
+        loss = kl_loss * self.beta + recon_loss
 
         self.log('val/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
 
@@ -140,7 +140,7 @@ class OPGLitModuleVAE(LightningModule):
 
         kl_loss = (-0.5 * (1 + log_var - mu ** 2 - torch.exp(log_var)).sum(dim=1)).mean(dim=0)
         recon_loss = self.test_loss(x, x_hat)
-        loss = recon_loss * self.beta + kl_loss
+        loss = kl_loss * self.beta + recon_loss
 
         lat_repr = self.reparametrize(mu, log_var)
 
@@ -223,7 +223,7 @@ class OPGLitModuleVAE(LightningModule):
         # bool_array = np.absolute(mod_z_array) > 3
 
         # using latent representations of test images, compared to the multivariate distribution of training images:
-        bool_array = p_array > float(ep)
+        bool_array = p_array < float(ep)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
@@ -249,6 +249,9 @@ class OPGLitModuleVAE(LightningModule):
 
         # log beta:
         self.log("beta", self.beta, on_step=False, on_epoch=True)
+
+        # Cohen's kappa
+        self.log("test/Cohen's kappa", score, on_step=False, on_epoch=True)
 
         # get classifications for plotting
         y_class = torch.cat([dict['clf'] for dict in outputs])
