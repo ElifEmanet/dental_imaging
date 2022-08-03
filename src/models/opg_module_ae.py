@@ -202,10 +202,10 @@ class OPGLitModule(LightningModule):
         # depending on which method you want to try out, uncomment the corresponding line
 
         # mse of test images compared to the average mse of training images:
-        # bool_array = mse_array > float(thr)
+        bool_array = mse_array > float(thr)
 
         # modified z-score of the mse of test images:
-        bool_array = np.absolute(mod_z_array) > 1
+        # bool_array = np.absolute(mod_z_array) > 1
 
         # using latent representations of test images, compared to the multivariate distribution of training images:
         # bool_array = p_array < float(ep)
