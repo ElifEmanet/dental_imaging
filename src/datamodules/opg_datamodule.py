@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import numpy as np
 
 from torch.utils.data import DataLoader, Dataset
-from typing import Optional, Tuple
+from typing import Optional
 from torchvision import transforms
 
 from src.dataset.dataset import OPGDataset, AdjustContrast, NormalizeIntensity, Rotate, RandomNoise, \
