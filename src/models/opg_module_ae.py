@@ -73,7 +73,7 @@ class OPGLitModule(LightningModule):
 
         self.prob = prob
 
-        self.name = "ae 1 ep, lat = 2, thr converted"
+        self.name = "ae 10 ep, lat = 2, gauss"
 
         wandb.init(project="dental_imaging",
                    name=self.name,
@@ -205,10 +205,10 @@ class OPGLitModule(LightningModule):
         # bool_array = mse_array > float(thr)
 
         # modified z-score of the mse of test images:
-        # bool_array = np.absolute(mod_z_array) > 3
+        bool_array = np.absolute(mod_z_array) > 1
 
         # using latent representations of test images, compared to the multivariate distribution of training images:
-        bool_array = p_array < float(ep)
+        # bool_array = p_array < float(ep)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1

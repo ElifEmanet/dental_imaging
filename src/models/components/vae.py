@@ -84,5 +84,4 @@ class Decoder(nn.Module):
         x = self.decoder_lin(x)
         x = self.unflatten(x)
         x = self.decoder_conv(x)
-        x = torch.sigmoid(x)
         return x

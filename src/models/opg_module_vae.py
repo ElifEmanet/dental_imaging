@@ -72,7 +72,7 @@ class OPGLitModuleVAE(LightningModule):
 
         self.now = datetime.now()
 
-        self.name = "vae, 1 ep, lat = 5"
+        self.name = "vae, 1 ep, lat = 2, mod_z"
 
         wandb.init(project="dental_imaging",
                    name=self.name,
@@ -220,10 +220,10 @@ class OPGLitModuleVAE(LightningModule):
         # bool_array = mse_array > float(average_loss)
 
         # modified z-score of the mse of test images:
-        # bool_array = np.absolute(mod_z_array) > 3
+        bool_array = np.absolute(mod_z_array) > 0.5
 
         # using latent representations of test images, compared to the multivariate distribution of training images:
-        bool_array = p_array < float(ep)
+        # bool_array = p_array < float(ep)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
