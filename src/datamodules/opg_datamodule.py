@@ -16,12 +16,10 @@ class OPGDataModule(pl.LightningDataModule):
             # depending on where you run this project, change the following line:
             # data_dir: str = "data/",
             data_dir: str = "/cluster/project/jbuhmann/dental_imaging/data/all_patches",
-            train_val_test_split: Tuple[int, int, int] = (55_000, 5_000, 10_000),
             batch_size: int = 32,
             test_batch_size: int = 64,
             num_workers: int = 0,
-            pin_memory: bool = False,
-            IS_RESNET: bool = False
+            pin_memory: bool = False
     ):
         super().__init__()
 
@@ -31,7 +29,6 @@ class OPGDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.test_batch_size = test_batch_size
         self.data_dir = data_dir
-        self.is_resnet = IS_RESNET
 
         self.dim = input_pxl
 
@@ -59,7 +56,7 @@ class OPGDataModule(pl.LightningDataModule):
              self.rotate,
              self.random_noise,
              self.random_crop,
-             ExpandDims(self.is_resnet),
+             ExpandDims(),
              ToTensor()]
         )
 
@@ -67,7 +64,7 @@ class OPGDataModule(pl.LightningDataModule):
             [self.resize,
              NormalizeIntensity(),
              AdjustContrast(1., 10., 0.),
-             ExpandDims(self.is_resnet),
+             ExpandDims(),
              ToTensor()]
         )
 

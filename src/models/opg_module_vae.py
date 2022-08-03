@@ -9,7 +9,7 @@ from pytorch_lightning import LightningModule
 from torchmetrics import MinMetric
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanSquaredError
-from sklearn.metrics import mean_squared_error, accuracy_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import mean_squared_error, accuracy_score, precision_score, recall_score
 from datetime import datetime
 
 from src.models.components.vae import Encoder, Decoder
@@ -31,10 +31,7 @@ class OPGLitModuleVAE(LightningModule):
 
     def __init__(
         self,
-        prob: float,
         beta: float,
-        is_resnet: bool,
-        latent_dim: int = 30,
         lr: float = 0.001,
         weight_decay: float = 0.0005,
         encoded_space_dim: int = 10,
@@ -66,9 +63,7 @@ class OPGLitModuleVAE(LightningModule):
 
         self.beta = beta
         self.encoded_space_dim = encoded_space_dim
-        self.prob = prob
         self.input_pxl = input_pxl
-        self.is_resnet = is_resnet
 
         self.now = datetime.now()
 
@@ -194,7 +189,7 @@ class OPGLitModuleVAE(LightningModule):
                                          num_lines - 2).strip()
 
         # get the threshold and mean and covariance of the training images on the best model
-        average_loss, mu, var = get_threshold(trained_path, True, self.encoded_space_dim, self.input_pxl, self.is_resnet)
+        average_loss, mu, var = get_threshold(trained_path, True, self.encoded_space_dim, self.input_pxl)
 
         # save the latent representations of test images
         lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])
@@ -203,14 +198,14 @@ class OPGLitModuleVAE(LightningModule):
 
         # probabilities for test images' latent representations
         p_array = multivariate_gaussian(lat_reprs_array, mu, var)  # has size (test images,)
-        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_prob' + str(self.prob) + d1, p_array)
+        np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_prob' + d1, p_array)
 
         # get true classes:
         ys = torch.cat([dict['y_bin'] for dict in outputs])
         ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
         np.save('/cluster/home/emanete/dental_imaging/test_results/vae_test_bin' + d1, ys_array)
 
-        score, ep = select_threshold(p_array, ys_array)
+        score, epsilon = select_threshold(p_array, ys_array)
 
         self.log("score", score, on_step=False, on_epoch=True)
 
@@ -223,7 +218,7 @@ class OPGLitModuleVAE(LightningModule):
         # bool_array = np.absolute(mod_z_array) > 0.5
 
         # using latent representations of test images, compared to the multivariate distribution of training images:
-        # bool_array = p_array < float(ep)
+        # bool_array = p_array < float(epsilon)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
@@ -234,10 +229,6 @@ class OPGLitModuleVAE(LightningModule):
         self.log("test/accuracy", accuracy, on_step=False, on_epoch=True)
 
         wandb.sklearn.plot_confusion_matrix(ys_array, int_array, ["normal", "anomaly"])
-
-        # AUROC
-        roc_auc = roc_auc_score(ys_array, p_array)
-        self.log("test/roc_auc", roc_auc, on_step=False, on_epoch=True)
 
         # precision
         precision = precision_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')

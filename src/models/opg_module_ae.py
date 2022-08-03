@@ -7,13 +7,12 @@ from pytorch_lightning import LightningModule
 from torchmetrics import MinMetric
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanSquaredError
-from sklearn.metrics import mean_squared_error, accuracy_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import mean_squared_error, accuracy_score, precision_score, recall_score
 from typing import Any, List
 from datetime import datetime
 
 from src.models.components.conv_encoder_decoder_LR import Encoder, Decoder
 from src.compute_threshold import get_threshold, multivariate_gaussian, select_threshold
-from src.models.components.resnet_ae import ResNetEncoder, ResNetDecoder
 
 
 class OPGLitModule(LightningModule):
@@ -31,9 +30,7 @@ class OPGLitModule(LightningModule):
 
     def __init__(
         self,
-        prob: float,
         input_pxl: int,
-        is_resnet: bool,
         lr: float = 0.001,
         weight_decay: float = 0.0005,
         encoded_space_dim: int = 10,
@@ -47,14 +44,9 @@ class OPGLitModule(LightningModule):
         self.save_hyperparameters(logger=False)
         self.encoded_space_dim = encoded_space_dim
         self.input_pxl = input_pxl
-        self.is_resnet = is_resnet
 
-        if is_resnet:
-            self.encoder = ResNetEncoder(encoded_space_dim).float()  # resnet
-            self.decoder = ResNetDecoder(encoded_space_dim).float()  # resnet
-        else:
-            self.encoder = Encoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()
-            self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()
+        self.encoder = Encoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()
+        self.decoder = Decoder(encoded_space_dim, fc2_input_dim, stride, input_pxl).float()
 
         # use separate metric instance for train, val and test step
         # to ensure a proper reduction over the epoch
@@ -70,8 +62,6 @@ class OPGLitModule(LightningModule):
         self.val_loss_best = MinMetric()
 
         self.now = datetime.now()
-
-        self.prob = prob
 
         self.name = "ae 10 ep, lat = 2, gauss"
 
@@ -179,7 +169,7 @@ class OPGLitModule(LightningModule):
                                          num_lines - 2).strip()
 
         # get the threshold and mean and covariance of the training images on the best model
-        thr, mu, var = get_threshold(trained_path, False, self.encoded_space_dim, self.input_pxl, self.is_resnet)
+        thr, mu, var = get_threshold(trained_path, False, self.encoded_space_dim, self.input_pxl)
 
         # save the latent representations of test images
         lat_reprs = torch.cat([dict['latent_repr'] for dict in outputs])  # has the dim: [# test images, lat_dim]
@@ -195,7 +185,7 @@ class OPGLitModule(LightningModule):
         ys_array = ys.cpu().numpy()  # numpy.ndarray of size (# test images,)
         np.save('/cluster/home/emanete/dental_imaging/test_results/test_bin' + d1, ys_array)
 
-        score, ep = select_threshold(p_array, ys_array)
+        score, epsilon = select_threshold(p_array, ys_array)
 
         self.log("score", score, on_step=False, on_epoch=True)
 
@@ -208,7 +198,7 @@ class OPGLitModule(LightningModule):
         # bool_array = np.absolute(mod_z_array) > 1
 
         # using latent representations of test images, compared to the multivariate distribution of training images:
-        # bool_array = p_array < float(ep)
+        # bool_array = p_array < float(epsilon)
 
         # convert boolean array to int array = predictions
         int_array = [int(elem) for elem in bool_array]  # if True, anomaly, hence 1
@@ -220,10 +210,6 @@ class OPGLitModule(LightningModule):
 
         # confusion matrix
         wandb.sklearn.plot_confusion_matrix(ys_array, int_array, ["normal", "anomaly"])
-
-        # AUROC
-        roc_auc = roc_auc_score(ys_array, p_array)
-        self.log("test/roc_auc", roc_auc, on_step=False, on_epoch=True)
 
         # precision
         precision = precision_score(ys_array, int_array, labels=["normal", "anomaly"], pos_label=1, average='binary')

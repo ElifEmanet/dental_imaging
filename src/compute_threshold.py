@@ -1,9 +1,8 @@
 import torch
 import numpy as np
 
-from sklearn.metrics import mean_squared_error, f1_score, accuracy_score
+from sklearn.metrics import mean_squared_error
 from torchmetrics import CohenKappa
-from datetime import datetime
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -18,7 +17,6 @@ def get_threshold(
         IS_VAE: bool,
         lat_dim: int,
         pxl_dim: int,
-        is_resnet: bool,
         batch_size: int = 32
 ):
     # get the training images
@@ -31,7 +29,7 @@ def get_threshold(
         [resize,
          NormalizeIntensity(),
          AdjustContrast(1., 10., 0.),
-         ExpandDims(is_resnet),
+         ExpandDims(),
          ToTensor()]
     )
 
@@ -84,20 +82,14 @@ def get_threshold(
             z_array_start = np.concatenate((z_array_start, z_array))
             mse_array_to_average = np.append(mse_array_to_average, mse_array)
 
-            d1 = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-
     z_array_final = z_array_start[1:, :]  # shape: (# train images, latent dimension)
     mse_array_final = mse_array_to_average[1:]
 
     average_loss = np.average(mse_array_final)
 
-    # np.save('/cluster/home/emanete/dental_imaging/test_results/lat_repr' + d1, z_array_final)
-
     # compute mean and covariance of the latent vectors of the training set
     mu = np.average(z_array_final, axis=0)  # array of size (latent dimension,)
     covar = np.cov(z_array_final, rowvar=False)  # covariance matrix of the distribution, shape (lat_dim, lat_dim)
-    np.save('/cluster/home/emanete/dental_imaging/test_results/mu' + d1, mu)
-    np.save('/cluster/home/emanete/dental_imaging/test_results/covar' + d1, covar)
 
     # threshold for mse:
     thr = average_loss
@@ -119,8 +111,6 @@ def select_threshold(probs, test_data):
     epsilons = np.arange(min(probs), max(probs), stepsize)
     for epsilon in np.nditer(epsilons):
         predictions = (probs < epsilon)
-        # f = f1_score(test_data, predictions, average='binary')
-        # f = accuracy_score(test_data, predictions)
         f = cohenkappa(torch.from_numpy(test_data), torch.from_numpy(predictions))
         if f > best_score:
             best_score = f

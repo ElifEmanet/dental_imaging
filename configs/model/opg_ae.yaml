@@ -6,4 +6,3 @@ encoded_space_dim: 2
 fc2_input_dim: 128
 stride: 2
 input_pxl: 420
-prob: 0.6

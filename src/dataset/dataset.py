@@ -364,11 +364,6 @@ class Zoom(object):
 
 
 class ExpandDims(object):
-    def __init__(self, is_resnet):
-        assert isinstance(is_resnet, bool)
-
-        self.is_resnet = is_resnet
-
     def __call__(self, sample):
         id = sample['id']
         image = sample['image']
@@ -377,10 +372,7 @@ class ExpandDims(object):
         view_cl = sample['view_cl']
         bin_class = sample['bin_class']
 
-        if self.is_resnet:
-            image = np.repeat(image[..., np.newaxis], 3, axis=-1)
-        else:
-            image = np.expand_dims(image, axis=-1)
+        image = np.expand_dims(image, axis=-1)
 
         return {'id': id, 'image': image, 'machine': machine, 'clf': clf,
                 'view_cl': view_cl, 'bin_class': bin_class}
